@@ -313,55 +313,26 @@
             }
         }
         
-        // This simulates what an OpenAI API call might return
-        async function simulateOpenAIRequest(prompt) {
-            // Simulate API delay
-            await new Promise(resolve => setTimeout(resolve, 1500));
-            
-            // These are simulated responses - in reality you'd get these from the API
-            async function getAITheme(prompt) {
-                try {
-                    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'Authorization': `Bearer ${OPENAI_API_KEY}` // Your key from config.js
-                        },
-                        body: JSON.stringify({
-                            model: "gpt-3.5-turbo",
-                            messages: [{
-                                role: "user",
-                                content: `Create a whack-a-mole theme about: ${prompt}. 
-                                Respond with ONLY JSON containing: 
-                                name, description, holeColor (HEX), 
-                                characterColor (HEX), backgroundColor (HEX), 
-                                textColor (HEX), characterImage (URL or null).`
-                            }],
-                            temperature: 0.7
-                        })
-                    });
-                    
-                    const data = await response.json();
-                    return data.choices[0].message.content;
-                    
-                } catch (error) {
-                    console.error("API Error:", error);
-                    return null; // Will trigger fallback
-                }
-            }
-            
-            // Check for specific keywords
-            if (prompt.toLowerCase().includes("alien")) {
-                return themeResponses.alien;
-            } else if (prompt.toLowerCase().includes("fantasy")) {
-                return themeResponses.fantasy;
-            } else if (prompt.toLowerCase().includes("underwater")) {
-                return themeResponses.underwater;
-            } else {
-                return themeResponses.default;
+        const API_BASE = "https://whack-a-mole-backend.codebreaker091.repl.co";
+
+        async function getAITheme(prompt) {
+            try {
+                const response = await fetch(`${API_BASE}/api/theme`, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({ prompt })
+                });
+
+                const data = await response.json();
+                return JSON.stringify(data);
+            } catch (error) {
+                console.error("API call failed:", error);
+                return null;
             }
         }
-        
+   
         function applyThemeSettings(theme) {
             // Update game visuals based on theme
             gameContainer.style.backgroundColor = theme.holeColor;
