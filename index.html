@@ -29,7 +29,7 @@
       position: relative;
       width: 600px;
       margin: 0 auto;
-      background-color: #8B4513;
+      background-color: #f0f0f0;
       border-radius: 10px;
       padding: 20px;
       box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
@@ -41,8 +41,6 @@
       flex-wrap: wrap;
       justify-content: center;
       gap: 20px;
-      width: 100%;
-      height: auto;
     }
 
     .hole {
@@ -52,6 +50,7 @@
       overflow: hidden;
       width: 150px;
       height: 150px;
+      border: 2px solid #000;
     }
 
     .character {
@@ -61,7 +60,7 @@
       bottom: -120px;
       left: 0;
       border-radius: 50% 50% 0 0;
-      transition: bottom 0.3s ease;
+      transition: bottom 0.3s ease, filter 0.3s;
       background-size: contain;
       background-repeat: no-repeat;
       background-position: center bottom;
@@ -206,6 +205,18 @@
     let score = 0, timeLeft = 30, gameInterval, moleInterval;
     let isPaused = false, gameActive = false;
 
+    const fallbackImage = "https://cdn-icons-png.flaticon.com/512/616/616408.png";
+
+    const currentTheme = {
+      name: "Classic Whack-a-Mole",
+      description: "The traditional mole whacking game",
+      holeColor: "#8B4513",
+      characterColor: "#654321",
+      characterImage: null,
+      backgroundColor: "#f0f0f0",
+      textColor: "#333"
+    };
+
     const startBtn = document.getElementById('start-btn');
     const pauseBtn = document.getElementById('pause-btn');
     const restartBtn = document.getElementById('restart-btn');
@@ -222,40 +233,31 @@
     const themeDescription = document.getElementById('theme-description');
     const aiLoading = document.getElementById('ai-loading');
 
-    const fallbackImage = "https://cdn-icons-png.flaticon.com/512/616/616408.png";
-
-    const currentTheme = {
-      name: "Classic Whack-a-Mole",
-      description: "The traditional mole whacking game",
-      holeColor: "#8B4513",
-      characterColor: "#654321",
-      characterImage: null,
-      backgroundColor: "#f0f0f0",
-      textColor: "#333"
-    };
-
     applyThemeBtn.addEventListener('click', applyTheme);
     startBtn.addEventListener('click', startGame);
     pauseBtn.addEventListener('click', togglePause);
     restartBtn.addEventListener('click', restartGame);
 
     function applyThemeSettings(theme) {
-      document.body.style.backgroundColor = theme.backgroundColor;
-      gameContainer.style.backgroundColor = theme.holeColor;
+      document.body.style.backgroundColor = theme.backgroundColor || "#f0f0f0";
+      gameContainer.style.backgroundColor = theme.backgroundColor || "#f0f0f0";
       gameTitle.textContent = theme.name;
-      gameTitle.style.color = theme.textColor;
+      gameTitle.style.color = theme.textColor || "#333";
       themeDescription.textContent = theme.description;
-      themeDescription.style.color = theme.textColor;
+      themeDescription.style.color = theme.textColor || "#666";
+
+      const characterImage = theme.characterImage && theme.characterImage.startsWith("http") ? theme.characterImage : null;
+      const characterColor = theme.characterColor || "#FFD700";
+      const holeColor = theme.holeColor || "#222";
 
       holes.forEach(hole => {
-        hole.style.backgroundColor = theme.holeColor;
+        hole.style.backgroundColor = holeColor;
+        hole.style.border = "2px solid #000";
       });
 
-      const useImage = theme.characterImage && theme.characterImage.startsWith("http");
-
       characters.forEach(character => {
-        character.style.backgroundColor = useImage ? 'transparent' : theme.characterColor;
-        character.style.backgroundImage = `url(${useImage ? theme.characterImage : fallbackImage})`;
+        character.style.backgroundColor = characterImage ? 'transparent' : characterColor;
+        character.style.backgroundImage = `url(${characterImage || fallbackImage})`;
       });
     }
 
@@ -343,7 +345,6 @@
       startGame();
     }
 
-    // Apply default on load
     applyThemeSettings(currentTheme);
   </script>
 </body>
