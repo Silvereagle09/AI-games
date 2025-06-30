@@ -294,8 +294,8 @@
             try {
                 const aiResponse = await getAITheme(themePrompt);
                 if (!aiResponse) {
-                    alert("AI service unavailable. Using fallback theme.");
-                    applyThemeSettings(generateFallbackTheme(themePrompt));
+                    alert("AI service unavailable. Please try again later.");
+
                     return;
                 }
                 // Parse the AI response (in a real app, you would validate this)
