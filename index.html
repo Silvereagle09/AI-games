@@ -49,9 +49,11 @@
       position: relative;
       background-color: #000;
       border-radius: 50%;
-      overflow: hidden;
+      overflow: visible; /* CHANGED */
       cursor: pointer;
+      transition: all 0.3s;
     }
+
 
     .character {
       position: absolute;
@@ -68,7 +70,9 @@
 
     .character.up {
       bottom: 10%;
+      z-index: 5;
     }
+
 
     .character.whacked {
       filter: brightness(0.5);
