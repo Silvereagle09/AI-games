@@ -14,7 +14,6 @@
     }
 
     h1 {
-      color: #333;
       margin-bottom: 10px;
     }
 
@@ -22,7 +21,6 @@
       margin: 10px auto 20px;
       max-width: 500px;
       font-style: italic;
-      color: #666;
     }
 
     #game-container {
@@ -91,7 +89,6 @@
       border: none;
       border-radius: 5px;
       cursor: pointer;
-      transition: background-color 0.3s;
     }
 
     button:hover {
@@ -99,7 +96,7 @@
     }
 
     button:disabled {
-      background-color: #cccccc;
+      background-color: #ccc;
       cursor: not-allowed;
     }
 
@@ -134,11 +131,6 @@
       align-items: center;
       color: white;
       border-radius: 10px;
-    }
-
-    #game-over h2 {
-      font-size: 36px;
-      margin-bottom: 20px;
     }
 
     #final-score {
@@ -233,34 +225,26 @@
       textColor: "#333"
     };
 
-    applyThemeBtn.addEventListener('click', applyTheme);
-    startBtn.addEventListener('click', startGame);
-    pauseBtn.addEventListener('click', togglePause);
-    restartBtn.addEventListener('click', restartGame);
-
-    holes.forEach(hole => {
-      hole.addEventListener('click', () => {
-        if (!gameActive || isPaused) return;
-        const character = hole.querySelector('.character');
-        if (character.classList.contains('up')) {
-          character.classList.add('whacked');
-          score++;
-          scoreDisplay.textContent = score;
-          setTimeout(() => character.classList.remove('up', 'whacked'), 300);
-        }
-      });
-    });
+    function isDarkColor(hex) {
+      if (!hex || typeof hex !== 'string') return true;
+      const hexClean = hex.replace("#", "");
+      if (hexClean.length !== 6) return true;
+      const r = parseInt(hexClean.substr(0,2), 16);
+      const g = parseInt(hexClean.substr(2,2), 16);
+      const b = parseInt(hexClean.substr(4,2), 16);
+      const brightness = (r * 299 + g * 587 + b * 114) / 1000;
+      return brightness < 90;
+    }
 
     function applyThemeSettings(theme) {
-      const backgroundColor = theme.backgroundColor || "#f0f0f0";
-      const holeColor = theme.holeColor || "#222";
+      const bgColor = isDarkColor(theme.backgroundColor) ? "#f0f0f0" : theme.backgroundColor;
+      const holeColor = isDarkColor(theme.holeColor) ? "#cccccc" : theme.holeColor;
       const charColor = theme.characterColor || "#FFD700";
       const textColor = theme.textColor || "#333";
       const charImage = theme.characterImage && theme.characterImage.startsWith("http")
-        ? theme.characterImage
-        : null;
+        ? theme.characterImage : null;
 
-      document.body.style.backgroundColor = backgroundColor;
+      document.body.style.backgroundColor = bgColor;
       gameContainer.style.backgroundColor = holeColor;
       gameTitle.textContent = theme.name;
       gameTitle.style.color = textColor;
@@ -269,22 +253,13 @@
 
       holes.forEach(hole => {
         hole.style.backgroundColor = holeColor;
+        hole.style.border = "2px solid #000";
       });
 
-      const img = new Image();
-      img.onload = () => {
-        characters.forEach(character => {
-          character.style.backgroundColor = 'transparent';
-          character.style.backgroundImage = `url(${charImage})`;
-        });
-      };
-      img.onerror = () => {
-        characters.forEach(character => {
-          character.style.backgroundColor = charColor;
-          character.style.backgroundImage = `url(${fallbackImage})`;
-        });
-      };
-      img.src = charImage || fallbackImage;
+      characters.forEach(character => {
+        character.style.backgroundColor = charImage ? 'transparent' : charColor;
+        character.style.backgroundImage = url(${charImage || fallbackImage});
+      });
     }
 
     async function applyTheme() {
@@ -304,7 +279,6 @@
       } catch (e) {
         console.error("AI error:", e);
         alert("AI service unavailable. Using default theme.");
-        applyThemeSettings(currentTheme);
       } finally {
         applyThemeBtn.disabled = false;
         aiLoading.style.display = 'none';
@@ -320,7 +294,6 @@
       gameOverScreen.style.display = 'none';
       gameActive = true;
       isPaused = false;
-
       characters.forEach(c => c.classList.remove('up', 'whacked'));
       startBtn.disabled = true;
       pauseBtn.disabled = false;
@@ -361,18 +334,27 @@
       clearInterval(gameInterval);
       clearInterval(moleInterval);
       characters.forEach(c => c.classList.remove('up'));
-      finalScoreDisplay.textContent = `Your score: ${score}`;
+      finalScoreDisplay.textContent = Your score: ${score};
       gameOverScreen.style.display = 'flex';
       startBtn.disabled = false;
       pauseBtn.disabled = true;
     }
 
     function restartGame() {
+      clearInterval(gameInterval);
+      clearInterval(moleInterval);
+      gameActive = false;
+      isPaused = false;
+      pauseBtn.textContent = "Pause";
+      score = 0;
+      timeLeft = 30;
+      scoreDisplay.textContent = score;
+      timeDisplay.textContent = timeLeft;
+      characters.forEach(c => c.classList.remove('up', 'whacked'));
       gameOverScreen.style.display = 'none';
       startGame();
     }
 
-    // Initial default theme
     applyThemeSettings(currentTheme);
   </script>
 </body>
