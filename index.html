@@ -29,7 +29,7 @@
       position: relative;
       width: 600px;
       margin: 0 auto;
-      background-color: #f0f0f0;
+      background-color: #8B4513;
       border-radius: 10px;
       padding: 20px;
       box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
@@ -60,7 +60,7 @@
       bottom: -120px;
       left: 0;
       border-radius: 50% 50% 0 0;
-      transition: bottom 0.3s ease, filter 0.3s;
+      transition: bottom 0.3s ease;
       background-size: contain;
       background-repeat: no-repeat;
       background-position: center bottom;
@@ -205,18 +205,6 @@
     let score = 0, timeLeft = 30, gameInterval, moleInterval;
     let isPaused = false, gameActive = false;
 
-    const fallbackImage = "https://cdn-icons-png.flaticon.com/512/616/616408.png";
-
-    const currentTheme = {
-      name: "Classic Whack-a-Mole",
-      description: "The traditional mole whacking game",
-      holeColor: "#8B4513",
-      characterColor: "#654321",
-      characterImage: null,
-      backgroundColor: "#f0f0f0",
-      textColor: "#333"
-    };
-
     const startBtn = document.getElementById('start-btn');
     const pauseBtn = document.getElementById('pause-btn');
     const restartBtn = document.getElementById('restart-btn');
@@ -233,57 +221,71 @@
     const themeDescription = document.getElementById('theme-description');
     const aiLoading = document.getElementById('ai-loading');
 
+    const fallbackImage = "https://cdn-icons-png.flaticon.com/512/616/616408.png";
+
+    const currentTheme = {
+      name: "Classic Whack-a-Mole",
+      description: "The traditional mole whacking game",
+      holeColor: "#8B4513",
+      characterColor: "#654321",
+      characterImage: null,
+      backgroundColor: "#f0f0f0",
+      textColor: "#333"
+    };
+
     applyThemeBtn.addEventListener('click', applyTheme);
     startBtn.addEventListener('click', startGame);
     pauseBtn.addEventListener('click', togglePause);
     restartBtn.addEventListener('click', restartGame);
 
-    function isDarkColor(hexColor) {
-      if (!hexColor || typeof hexColor !== 'string') return true;
-      const hex = hexColor.replace('#', '');
-      if (hex.length !== 6) return true;
-      const r = parseInt(hex.substring(0, 2), 16);
-      const g = parseInt(hex.substring(2, 4), 16);
-      const b = parseInt(hex.substring(4, 6), 16);
-      const brightness = (r * 299 + g * 587 + b * 114) / 1000;
-      return brightness < 90;
-    }
-    
+    holes.forEach(hole => {
+      hole.addEventListener('click', () => {
+        if (!gameActive || isPaused) return;
+        const character = hole.querySelector('.character');
+        if (character.classList.contains('up')) {
+          character.classList.add('whacked');
+          score++;
+          scoreDisplay.textContent = score;
+          setTimeout(() => character.classList.remove('up', 'whacked'), 300);
+        }
+      });
+    });
+
     function applyThemeSettings(theme) {
-      console.log("🎨 Applying theme:", theme);
-    
-      // Fallbacks
-      const fallbackHoleColor = "#cccccc";
-      const fallbackBackground = "#f0f0f0";
-      const fallbackCharacterColor = "#FFD700";
-      const fallbackImage = "https://cdn-icons-png.flaticon.com/512/616/616408.png";
-    
-      // Validate & brighten if necessary
-      const holeColor = isDarkColor(theme.holeColor) ? fallbackHoleColor : theme.holeColor;
-      const bgColor = isDarkColor(theme.backgroundColor) ? fallbackBackground : theme.backgroundColor;
-      const charColor = theme.characterColor || fallbackCharacterColor;
+      const backgroundColor = theme.backgroundColor || "#f0f0f0";
+      const holeColor = theme.holeColor || "#222";
+      const charColor = theme.characterColor || "#FFD700";
       const textColor = theme.textColor || "#333";
       const charImage = theme.characterImage && theme.characterImage.startsWith("http")
-        ? theme.characterImage : null;
-    
-      document.body.style.backgroundColor = bgColor;
+        ? theme.characterImage
+        : null;
+
+      document.body.style.backgroundColor = backgroundColor;
       gameContainer.style.backgroundColor = holeColor;
       gameTitle.textContent = theme.name;
       gameTitle.style.color = textColor;
       themeDescription.textContent = theme.description;
       themeDescription.style.color = textColor;
-    
+
       holes.forEach(hole => {
         hole.style.backgroundColor = holeColor;
-        hole.style.border = "2px solid #000"; // always show borders
       });
-    
-      characters.forEach(character => {
-        character.style.backgroundColor = charImage ? 'transparent' : charColor;
-        character.style.backgroundImage = `url(${charImage || fallbackImage})`;
-      });
-    }
 
+      const img = new Image();
+      img.onload = () => {
+        characters.forEach(character => {
+          character.style.backgroundColor = 'transparent';
+          character.style.backgroundImage = `url(${charImage})`;
+        });
+      };
+      img.onerror = () => {
+        characters.forEach(character => {
+          character.style.backgroundColor = charColor;
+          character.style.backgroundImage = `url(${fallbackImage})`;
+        });
+      };
+      img.src = charImage || fallbackImage;
+    }
 
     async function applyTheme() {
       const prompt = themeInput.value.trim();
@@ -302,6 +304,7 @@
       } catch (e) {
         console.error("AI error:", e);
         alert("AI service unavailable. Using default theme.");
+        applyThemeSettings(currentTheme);
       } finally {
         applyThemeBtn.disabled = false;
         aiLoading.style.display = 'none';
@@ -369,6 +372,7 @@
       startGame();
     }
 
+    // Initial default theme
     applyThemeSettings(currentTheme);
   </script>
 </body>
