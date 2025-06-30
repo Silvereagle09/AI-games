@@ -357,6 +357,30 @@
       startGame();
     }
 
+    function popRandomCharacter() {
+  if (isPaused || !gameActive) return;
+
+  characters.forEach(character => {
+    character.classList.remove('up');
+  });
+
+  const randomIndex = Math.floor(Math.random() * characters.length);
+  const randomCharacter = characters[randomIndex];
+
+  console.log("Popping up:", randomIndex); // ← ADD THIS
+
+  if (!randomCharacter.classList.contains('whacked')) {
+    randomCharacter.classList.add('up');
+
+    setTimeout(() => {
+      if (randomCharacter.classList.contains('up')) {
+        randomCharacter.classList.remove('up');
+      }
+    }, 500 + Math.random() * 2000);
+  }
+}
+
+
     // Apply initial default theme
     applyThemeSettings(currentTheme);
   </script>
