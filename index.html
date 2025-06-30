@@ -163,7 +163,7 @@
   <div id="theme-description">Describe your theme and let AI customize the game!</div>
 
   <div id="ai-controls">
-    <input type="text" id="theme-input" placeholder="e.g. 'alien invasion', 'forest bunnies'" />
+    <input type="text" id="theme-input" placeholder="e.g. 'alien invasion', 'forest bunnies', 'colorful candies'" />
     <button id="apply-theme-btn">Apply Theme</button>
     <div id="ai-loading" class="loading"></div>
   </div>
@@ -237,19 +237,20 @@
     }
 
     function applyThemeSettings(theme) {
-      const bgColor = isDarkColor(theme.backgroundColor) ? "#f0f0f0" : theme.backgroundColor;
-      const holeColor = isDarkColor(theme.holeColor) ? "#cccccc" : theme.holeColor;
-      const charColor = theme.characterColor || "#FFD700";
+      const bgColor = theme.backgroundColor || "#f0f0f0";
+      const holeColor = theme.holeColor || "#8B4513";
+      const charColor = theme.characterColor || "#654321";
       const textColor = theme.textColor || "#333";
-      const charImage = theme.characterImage && theme.characterImage.startsWith("http")
-        ? theme.characterImage : null;
+      const charImage = theme.characterImage && theme.characterImage.match(/\.(png|jpg|jpeg|gif|svg)/i) 
+        ? theme.characterImage 
+        : null;
 
       document.body.style.backgroundColor = bgColor;
       gameContainer.style.backgroundColor = holeColor;
-      gameTitle.textContent = theme.name;
-      gameTitle.style.color = textColor;
-      themeDescription.textContent = theme.description;
-      themeDescription.style.color = textColor;
+      gameTitle.textContent = theme.name || "AI Whack-a-Mole";
+      gameTitle.style.color = isDarkColor(bgColor) ? "#fff" : textColor;
+      themeDescription.textContent = theme.description || "Custom whack-a-mole game";
+      themeDescription.style.color = isDarkColor(bgColor) ? "#fff" : textColor;
 
       holes.forEach(hole => {
         hole.style.backgroundColor = holeColor;
@@ -258,21 +259,24 @@
 
       characters.forEach(character => {
         character.style.backgroundColor = charImage ? 'transparent' : charColor;
-        character.style.backgroundImage = url(${charImage || fallbackImage});
+        character.style.backgroundImage = charImage ? `url("${charImage}")` : `url("${fallbackImage}")`;
       });
     }
 
     async function applyTheme() {
       const prompt = themeInput.value.trim();
       if (!prompt) return;
+      
       applyThemeBtn.disabled = true;
       aiLoading.style.display = 'inline-block';
+      
       try {
         const res = await fetch("https://8a9658e6-b000-43e7-8ca3-b1257f9483de-00-44665w1144od.pike.replit.dev/api/theme", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ prompt })
         });
+        
         const theme = await res.json();
         applyThemeSettings(theme);
         themeInput.value = '';
@@ -334,7 +338,7 @@
       clearInterval(gameInterval);
       clearInterval(moleInterval);
       characters.forEach(c => c.classList.remove('up'));
-      finalScoreDisplay.textContent = Your score: ${score};
+      finalScoreDisplay.textContent = `Your score: ${score}`;
       gameOverScreen.style.display = 'flex';
       startBtn.disabled = false;
       pauseBtn.disabled = true;
@@ -355,7 +359,26 @@
       startGame();
     }
 
+    // Event listeners
+    startBtn.addEventListener('click', startGame);
+    pauseBtn.addEventListener('click', togglePause);
+    restartBtn.addEventListener('click', restartGame);
+    applyThemeBtn.addEventListener('click', applyTheme);
+
+    // Initialize game with default theme
     applyThemeSettings(currentTheme);
+
+    // Add click handlers for whacking characters
+    characters.forEach(character => {
+      character.addEventListener('click', () => {
+        if (character.classList.contains('up') && gameActive && !isPaused) {
+          character.classList.remove('up');
+          character.classList.add('whacked');
+          score++;
+          scoreDisplay.textContent = score;
+        }
+      });
+    });
   </script>
 </body>
 </html>
