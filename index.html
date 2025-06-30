@@ -283,11 +283,14 @@
 
             characters.forEach(character => {
                 character.style.backgroundColor = theme.characterImage ? 'transparent' : (theme.characterColor || '#654321');
-                if (theme.characterImage) {
-                    character.style.backgroundImage = `url(${theme.characterImage})`;
-                } else {
-                    character.style.backgroundImage = 'none';
-                }
+                const isValidURL = theme.characterImage && theme.characterImage.startsWith("http");
+                const fallbackImage = "https://cdn-icons-png.flaticon.com/512/616/616408.png"; // reliable mole image
+                
+                characters.forEach(character => {
+                    character.style.backgroundColor = isValidURL ? 'transparent' : theme.characterColor || "#000";
+                    character.style.backgroundImage = `url(${isValidURL ? theme.characterImage : fallbackImage})`;
+                });
+
             });
         }
 
