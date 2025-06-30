@@ -12,19 +12,16 @@
             margin: 0;
             padding: 20px;
         }
-        
         h1 {
             color: #333;
             margin-bottom: 10px;
         }
-        
         #theme-description {
             margin: 10px auto 20px;
             max-width: 500px;
             font-style: italic;
             color: #666;
         }
-        
         #game-container {
             position: relative;
             width: 600px;
@@ -36,7 +33,6 @@
             box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
             transition: all 0.3s;
         }
-        
         #game-board {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
@@ -45,7 +41,6 @@
             width: 100%;
             height: 100%;
         }
-        
         .hole {
             position: relative;
             background-color: #000;
@@ -54,7 +49,6 @@
             cursor: pointer;
             transition: all 0.3s;
         }
-        
         .character {
             position: absolute;
             width: 80%;
@@ -67,15 +61,12 @@
             background-repeat: no-repeat;
             background-position: center bottom;
         }
-        
         .character.up {
             bottom: 10%;
         }
-        
         .character.whacked {
             filter: brightness(0.5);
         }
-        
         #controls {
             margin: 20px auto;
             display: flex;
@@ -83,7 +74,6 @@
             flex-wrap: wrap;
             gap: 10px;
         }
-        
         button {
             padding: 10px 20px;
             font-size: 16px;
@@ -94,21 +84,17 @@
             cursor: pointer;
             transition: background-color 0.3s;
         }
-        
         button:hover {
             background-color: #45a049;
         }
-        
         button:disabled {
             background-color: #cccccc;
             cursor: not-allowed;
         }
-        
         #ai-controls {
             margin: 20px auto;
             max-width: 600px;
         }
-        
         #theme-input {
             padding: 10px;
             width: 300px;
@@ -116,17 +102,10 @@
             border: 1px solid #ccc;
             margin-right: 10px;
         }
-        
-        #score-display {
+        #score-display, #timer-display {
             font-size: 24px;
             margin: 20px 0;
         }
-        
-        #timer-display {
-            font-size: 24px;
-            margin: 20px 0;
-        }
-        
         #game-over {
             position: absolute;
             top: 0;
@@ -141,17 +120,14 @@
             color: white;
             border-radius: 10px;
         }
-        
         #game-over h2 {
             font-size: 36px;
             margin-bottom: 20px;
         }
-        
         #final-score {
             font-size: 24px;
             margin-bottom: 20px;
         }
-        
         .loading {
             display: inline-block;
             width: 20px;
@@ -161,11 +137,9 @@
             border-top-color: #fff;
             animation: spin 1s ease-in-out infinite;
         }
-        
         @keyframes spin {
             to { transform: rotate(360deg); }
         }
-        
         #ai-loading {
             display: none;
             margin-top: 10px;
@@ -175,58 +149,42 @@
 <body>
     <h1 id="game-title">AI Whack-a-Mole</h1>
     <div id="theme-description">Describe your theme and let AI customize the game!</div>
-    
+
     <div id="ai-controls">
         <input type="text" id="theme-input" placeholder="E.g. 'alien invasion', 'fantasy creatures', 'underwater world'">
         <button id="apply-theme-btn">Apply Theme</button>
         <div id="ai-loading" class="loading"></div>
     </div>
-    
+
     <div id="score-display">Score: <span id="score">0</span></div>
     <div id="timer-display">Time: <span id="time">30</span>s</div>
-    
+
     <div id="controls">
         <button id="start-btn">Start Game</button>
         <button id="pause-btn" disabled>Pause</button>
+        <button id="restart-btn" disabled>Restart</button>
     </div>
-    
+
     <div id="game-container">
         <div id="game-board">
-            <div class="hole">
-                <div class="character"></div>
-            </div>
-            <div class="hole">
-                <div class="character"></div>
-            </div>
-            <div class="hole">
-                <div class="character"></div>
-            </div>
-            <div class="hole">
-                <div class="character"></div>
-            </div>
-            <div class="hole">
-                <div class="character"></div>
-            </div>
-            <div class="hole">
-                <div class="character"></div>
-            </div>
+            <div class="hole"><div class="character"></div></div>
+            <div class="hole"><div class="character"></div></div>
+            <div class="hole"><div class="character"></div></div>
+            <div class="hole"><div class="character"></div></div>
+            <div class="hole"><div class="character"></div></div>
+            <div class="hole"><div class="character"></div></div>
         </div>
-        
         <div id="game-over">
             <h2>Game Over!</h2>
             <div id="final-score">Your score: 0</div>
-            <button id="restart-btn">Play Again</button>
+            <button onclick="restartGame()">Play Again</button>
         </div>
     </div>
-    
+
     <script>
-        // Game variables
-        let score = 0;
-        let timeLeft = 30;
-        let gameInterval;
-        let moleInterval;
-        let isPaused = false;
-        let gameActive = false;
+        const API_BASE = "https://8a9658e6-b000-43e7-8ca3-b1257f9483de-00-44665w1144od.pike.replit.dev";
+
+        let score = 0, timeLeft = 30, gameInterval, moleInterval, isPaused = false, gameActive = false;
         let currentTheme = {
             name: "Classic Whack-a-Mole",
             description: "The traditional mole whacking game",
@@ -236,8 +194,7 @@
             backgroundColor: "#f0f0f0",
             textColor: "#333"
         };
-        
-        // DOM elements
+
         const startBtn = document.getElementById('start-btn');
         const pauseBtn = document.getElementById('pause-btn');
         const restartBtn = document.getElementById('restart-btn');
@@ -253,56 +210,55 @@
         const gameTitle = document.getElementById('game-title');
         const themeDescription = document.getElementById('theme-description');
         const aiLoading = document.getElementById('ai-loading');
-        const gameBoard = document.getElementById('game-board');
-        
-        // Event listeners
-        startBtn.addEventListener('click', startGame);
-        pauseBtn.addEventListener('click', togglePause);
-        restartBtn.addEventListener('click', restartGame);
-        applyThemeBtn.addEventListener('click', applyTheme);
-        
+
+        startBtn.onclick = startGame;
+        pauseBtn.onclick = togglePause;
+        restartBtn.onclick = restartGame;
+        applyThemeBtn.onclick = applyTheme;
+
         holes.forEach(hole => {
-            hole.addEventListener('click', () => {
+            hole.onclick = () => {
                 if (!gameActive || isPaused) return;
-                
                 const character = hole.querySelector('.character');
                 if (character.classList.contains('up')) {
-                    // Whack the character!
                     character.classList.add('whacked');
                     score++;
                     scoreDisplay.textContent = score;
-                    
-                    // Hide the character after a short delay
-                    setTimeout(() => {
-                        character.classList.remove('up', 'whacked');
-                    }, 300);
+                    setTimeout(() => character.classList.remove('up', 'whacked'), 300);
                 }
-            });
+            }
         });
-        
-        // Initialize with default theme
-        applyThemeSettings(currentTheme);
-        
-        // AI Theme Functions
+
+        async function getAITheme(prompt) {
+            try {
+                const response = await fetch(`${API_BASE}/api/theme`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ prompt })
+                });
+                const data = await response.json();
+                return JSON.stringify(data);
+            } catch (error) {
+                console.error("API call failed:", error);
+                return null;
+            }
+        }
+
         async function applyTheme() {
             const themePrompt = themeInput.value.trim();
             if (!themePrompt) return;
-            
             applyThemeBtn.disabled = true;
             aiLoading.style.display = 'inline-block';
-            
             try {
                 const aiResponse = await getAITheme(themePrompt);
                 if (!aiResponse) {
                     alert("AI service unavailable. Please try again later.");
-
                     return;
                 }
-                // Parse the AI response (in a real app, you would validate this)
                 const newTheme = JSON.parse(aiResponse);
+                console.log("🎨 Theme received from AI:", newTheme);
                 currentTheme = newTheme;
                 applyThemeSettings(newTheme);
-                
                 themeInput.value = '';
             } catch (error) {
                 console.error("Error applying theme:", error);
@@ -312,43 +268,21 @@
                 aiLoading.style.display = 'none';
             }
         }
-        
-        const API_BASE = "https://8a9658e6-b000-43e7-8ca3-b1257f9483de-00-44665w1144od.pike.replit.dev";
 
-        async function getAITheme(prompt) {
-            try {
-                const response = await fetch(`${API_BASE}/api/theme`, {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json"
-                    },
-                    body: JSON.stringify({ prompt })
-                });
-
-                const data = await response.json();
-                return JSON.stringify(data);
-            } catch (error) {
-                console.error("API call failed:", error);
-                return null;
-            }
-        }
-   
         function applyThemeSettings(theme) {
-            // Update game visuals based on theme
-            gameContainer.style.backgroundColor = theme.holeColor;
-            document.body.style.backgroundColor = theme.backgroundColor;
-            gameTitle.style.color = theme.textColor;
-            gameTitle.textContent = theme.name;
-            themeDescription.textContent = theme.description;
-            themeDescription.style.color = theme.textColor;
-            
-            // Update holes and characters
+            gameContainer.style.backgroundColor = theme.holeColor || '#8B4513';
+            document.body.style.backgroundColor = theme.backgroundColor || '#f0f0f0';
+            gameTitle.style.color = theme.textColor || '#333';
+            gameTitle.textContent = theme.name || 'AI Whack-a-Mole';
+            themeDescription.textContent = theme.description || '';
+            themeDescription.style.color = theme.textColor || '#333';
+
             holes.forEach(hole => {
-                hole.style.backgroundColor = theme.characterColor;
+                hole.style.backgroundColor = theme.holeColor || '#8B4513';
             });
-            
+
             characters.forEach(character => {
-                character.style.backgroundColor = theme.characterImage ? 'transparent' : theme.characterColor;
+                character.style.backgroundColor = theme.characterImage ? 'transparent' : (theme.characterColor || '#654321');
                 if (theme.characterImage) {
                     character.style.backgroundImage = `url(${theme.characterImage})`;
                 } else {
@@ -356,33 +290,9 @@
                 }
             });
         }
-        
-        function getRandomColor() {
-            const letters = '0123456789ABCDEF';
-            let color = '#';
-            for (let i = 0; i < 6; i++) {
-                color += letters[Math.floor(Math.random() * 16)];
-            }
-            return color;
-        }
-        
-        function getRandomLightColor() {
-            // Generate light colors only
-            const hue = Math.floor(Math.random() * 360);
-            return `hsl(${hue}, 80%, 90%)`;
-        }
-        
-        function getRandomDarkColor() {
-            // Generate dark colors only
-            const hue = Math.floor(Math.random() * 360);
-            return `hsl(${hue}, 80%, 20%)`;
-        }
-        
-        // Game functions
+
         function startGame() {
             if (gameActive) return;
-            
-            // Reset game state
             score = 0;
             timeLeft = 30;
             scoreDisplay.textContent = score;
@@ -390,66 +300,37 @@
             gameOverScreen.style.display = 'none';
             gameActive = true;
             isPaused = false;
-            
-            // Hide all characters
-            characters.forEach(character => {
-                character.classList.remove('up', 'whacked');
-            });
-            
-            // Update button states
+            characters.forEach(c => c.classList.remove('up', 'whacked'));
             startBtn.disabled = true;
             pauseBtn.disabled = false;
+            restartBtn.disabled = false;
             pauseBtn.textContent = 'Pause';
-            
-            // Start game timer
+
             gameInterval = setInterval(() => {
                 if (!isPaused) {
                     timeLeft--;
                     timeDisplay.textContent = timeLeft;
-                    
-                    if (timeLeft <= 0) {
-                        endGame();
-                    }
+                    if (timeLeft <= 0) endGame();
                 }
             }, 1000);
-            
-            // Start character popping
+
             moleInterval = setInterval(popRandomCharacter, 800);
         }
-        
+
         function togglePause() {
             if (!gameActive) return;
-            
             isPaused = !isPaused;
             pauseBtn.textContent = isPaused ? 'Resume' : 'Pause';
-            
-            if (isPaused) {
-                // Hide all characters when paused
-                characters.forEach(character => {
-                    if (character.classList.contains('up')) {
-                        character.classList.remove('up');
-                    }
-                });
-            }
+            if (isPaused) characters.forEach(c => c.classList.remove('up'));
         }
-        
+
         function popRandomCharacter() {
             if (isPaused || !gameActive) return;
-            
-            // Hide any currently up characters
-            characters.forEach(character => {
-                character.classList.remove('up');
-            });
-            
-            // Select a random character to pop up
-            const randomIndex = Math.floor(Math.random() * characters.length);
-            const randomCharacter = characters[randomIndex];
-            
-            // Only pop up if not already whacked
+            characters.forEach(c => c.classList.remove('up'));
+            const i = Math.floor(Math.random() * characters.length);
+            const randomCharacter = characters[i];
             if (!randomCharacter.classList.contains('whacked')) {
                 randomCharacter.classList.add('up');
-                
-                // Auto-hide after random time (0.5-2.5 seconds)
                 setTimeout(() => {
                     if (randomCharacter.classList.contains('up')) {
                         randomCharacter.classList.remove('up');
@@ -457,30 +338,26 @@
                 }, 500 + Math.random() * 2000);
             }
         }
-        
+
         function endGame() {
             gameActive = false;
             clearInterval(gameInterval);
             clearInterval(moleInterval);
-            
-            // Hide all characters
-            characters.forEach(character => {
-                character.classList.remove('up');
-            });
-            
-            // Show game over screen
+            characters.forEach(c => c.classList.remove('up'));
             finalScoreDisplay.textContent = `Your score: ${score}`;
             gameOverScreen.style.display = 'flex';
-            
-            // Update button states
             startBtn.disabled = false;
             pauseBtn.disabled = true;
         }
-        
+
         function restartGame() {
+            clearInterval(gameInterval);
+            clearInterval(moleInterval);
             gameOverScreen.style.display = 'none';
             startGame();
         }
+
+        applyThemeSettings(currentTheme);
     </script>
 </body>
 </html>
