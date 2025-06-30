@@ -11,16 +11,19 @@
       background-color: #f0f0f0;
       margin: 0;
       padding: 20px;
+      transition: background-color 0.3s;
     }
 
     h1 {
       margin-bottom: 10px;
+      transition: color 0.3s;
     }
 
     #theme-description {
       margin: 10px auto 20px;
       max-width: 500px;
       font-style: italic;
+      transition: color 0.3s;
     }
 
     #game-container {
@@ -49,6 +52,7 @@
       width: 150px;
       height: 150px;
       border: 2px solid #000;
+      transition: background-color 0.3s;
     }
 
     .character {
@@ -58,7 +62,7 @@
       bottom: -120px;
       left: 0;
       border-radius: 50% 50% 0 0;
-      transition: bottom 0.3s ease;
+      transition: bottom 0.3s ease, background-image 0.3s;
       background-size: contain;
       background-repeat: no-repeat;
       background-position: center bottom;
@@ -89,6 +93,7 @@
       border: none;
       border-radius: 5px;
       cursor: pointer;
+      transition: background-color 0.3s;
     }
 
     button:hover {
@@ -131,6 +136,7 @@
       align-items: center;
       color: white;
       border-radius: 10px;
+      z-index: 10;
     }
 
     #final-score {
@@ -163,7 +169,7 @@
   <div id="theme-description">Describe your theme and let AI customize the game!</div>
 
   <div id="ai-controls">
-    <input type="text" id="theme-input" placeholder="e.g. 'alien invasion', 'forest bunnies', 'colorful candies'" />
+    <input type="text" id="theme-input" placeholder="e.g. 'zombie hands', 'colorful candies', 'angry bees'" />
     <button id="apply-theme-btn">Apply Theme</button>
     <div id="ai-loading" class="loading"></div>
   </div>
@@ -194,9 +200,12 @@
   </div>
 
   <script>
+    // Game State
     let score = 0, timeLeft = 30, gameInterval, moleInterval;
     let isPaused = false, gameActive = false;
+    let currentTheme = null;
 
+    // DOM Elements
     const startBtn = document.getElementById('start-btn');
     const pauseBtn = document.getElementById('pause-btn');
     const restartBtn = document.getElementById('restart-btn');
@@ -213,54 +222,77 @@
     const themeDescription = document.getElementById('theme-description');
     const aiLoading = document.getElementById('ai-loading');
 
-    const fallbackImage = "https://cdn-icons-png.flaticon.com/512/616/616408.png";
-
-    const currentTheme = {
-      name: "Classic Whack-a-Mole",
-      description: "The traditional mole whacking game",
-      holeColor: "#8B4513",
-      characterColor: "#654321",
-      characterImage: null,
-      backgroundColor: "#f0f0f0",
-      textColor: "#333"
+    // Theme Configuration
+    const THEME_FALLBACKS = {
+      'zombie': 'https://cdn-icons-png.flaticon.com/512/3069/3069198.png',
+      'candy': 'https://cdn-icons-png.flaticon.com/512/2675/2675470.png',
+      'alien': 'https://cdn-icons-png.flaticon.com/512/3414/3414049.png',
+      'bunny': 'https://cdn-icons-png.flaticon.com/512/3069/3069172.png',
+      'default': 'https://cdn-icons-png.flaticon.com/512/616/616408.png'
     };
 
-    function isDarkColor(hex) {
-      if (!hex || typeof hex !== 'string') return true;
-      const hexClean = hex.replace("#", "");
-      if (hexClean.length !== 6) return true;
-      const r = parseInt(hexClean.substr(0,2), 16);
-      const g = parseInt(hexClean.substr(2,2), 16);
-      const b = parseInt(hexClean.substr(4,2), 16);
-      const brightness = (r * 299 + g * 587 + b * 114) / 1000;
-      return brightness < 90;
+    // Initialize Game
+    function initGame() {
+      applyThemeSettings(getDefaultTheme());
+      setupEventListeners();
+    }
+
+    function getDefaultTheme() {
+      return {
+        name: "Classic Whack-a-Mole",
+        description: "The traditional mole whacking game",
+        holeColor: "#8B4513",
+        characterColor: "#654321",
+        characterImage: THEME_FALLBACKS.default,
+        backgroundColor: "#f0f0f0",
+        textColor: "#333"
+      };
+    }
+
+    function getFallbackTheme(prompt) {
+      const keyword = prompt.toLowerCase().split(' ')[0];
+      return {
+        name: `${prompt} Whack-a-Mole`,
+        description: `Whack the ${prompt}!`,
+        holeColor: "#8B4513",
+        characterColor: "#654321",
+        backgroundColor: "#f0f0f0",
+        textColor: "#333",
+        characterImage: THEME_FALLBACKS[keyword] || THEME_FALLBACKS.default
+      };
     }
 
     function applyThemeSettings(theme) {
-      const bgColor = theme.backgroundColor || "#f0f0f0";
-      const holeColor = theme.holeColor || "#8B4513";
-      const charColor = theme.characterColor || "#654321";
-      const textColor = theme.textColor || "#333";
-      const charImage = theme.characterImage && theme.characterImage.match(/\.(png|jpg|jpeg|gif|svg)/i) 
+      currentTheme = theme;
+      
+      // Apply colors
+      document.body.style.backgroundColor = theme.backgroundColor;
+      gameContainer.style.backgroundColor = theme.holeColor;
+      gameTitle.textContent = theme.name;
+      gameTitle.style.color = theme.textColor;
+      themeDescription.textContent = theme.description;
+      themeDescription.style.color = theme.textColor;
+
+      // Apply character images
+      const charImage = validateImage(theme.characterImage, theme.name) 
         ? theme.characterImage 
-        : null;
-
-      document.body.style.backgroundColor = bgColor;
-      gameContainer.style.backgroundColor = holeColor;
-      gameTitle.textContent = theme.name || "AI Whack-a-Mole";
-      gameTitle.style.color = isDarkColor(bgColor) ? "#fff" : textColor;
-      themeDescription.textContent = theme.description || "Custom whack-a-mole game";
-      themeDescription.style.color = isDarkColor(bgColor) ? "#fff" : textColor;
-
-      holes.forEach(hole => {
-        hole.style.backgroundColor = holeColor;
-        hole.style.border = "2px solid #000";
-      });
+        : getFallbackImage(theme.name);
 
       characters.forEach(character => {
-        character.style.backgroundColor = charImage ? 'transparent' : charColor;
-        character.style.backgroundImage = charImage ? `url("${charImage}")` : `url("${fallbackImage}")`;
+        character.style.backgroundColor = 'transparent';
+        character.style.backgroundImage = `url("${charImage}")`;
       });
+    }
+
+    function validateImage(url, themeName) {
+      if (!url) return false;
+      const themeKeywords = themeName.toLowerCase().split(' ');
+      return themeKeywords.some(keyword => url.toLowerCase().includes(keyword));
+    }
+
+    function getFallbackImage(themeName) {
+      const keyword = themeName.toLowerCase().split(' ')[0];
+      return THEME_FALLBACKS[keyword] || THEME_FALLBACKS.default;
     }
 
     async function applyTheme() {
@@ -278,39 +310,67 @@
         });
         
         const theme = await res.json();
+        if (!theme) throw new Error("No theme returned");
+        
         applyThemeSettings(theme);
         themeInput.value = '';
       } catch (e) {
-        console.error("AI error:", e);
-        alert("AI service unavailable. Using default theme.");
+        console.error("Theme error:", e);
+        applyThemeSettings(getFallbackTheme(prompt));
       } finally {
         applyThemeBtn.disabled = false;
         aiLoading.style.display = 'none';
       }
     }
 
+    // Game Logic
     function startGame() {
       if (gameActive) return;
+      resetGame();
+      gameActive = true;
+      isPaused = false;
+      startBtn.disabled = true;
+      pauseBtn.disabled = false;
+
+      gameInterval = setInterval(updateTimer, 1000);
+      moleInterval = setInterval(popRandomCharacter, 800);
+    }
+
+    function resetGame() {
       score = 0;
       timeLeft = 30;
       scoreDisplay.textContent = score;
       timeDisplay.textContent = timeLeft;
       gameOverScreen.style.display = 'none';
-      gameActive = true;
-      isPaused = false;
       characters.forEach(c => c.classList.remove('up', 'whacked'));
-      startBtn.disabled = true;
-      pauseBtn.disabled = false;
+    }
 
-      gameInterval = setInterval(() => {
-        if (!isPaused) {
-          timeLeft--;
-          timeDisplay.textContent = timeLeft;
-          if (timeLeft <= 0) endGame();
-        }
-      }, 1000);
+    function updateTimer() {
+      if (!isPaused) {
+        timeLeft--;
+        timeDisplay.textContent = timeLeft;
+        if (timeLeft <= 0) endGame();
+      }
+    }
 
-      moleInterval = setInterval(popRandomCharacter, 800);
+    function popRandomCharacter() {
+      if (!gameActive || isPaused) return;
+      characters.forEach(c => c.classList.remove('up'));
+      
+      const activeCharacters = Array.from(characters)
+        .filter(c => !c.classList.contains('whacked'));
+      
+      if (activeCharacters.length > 0) {
+        const rand = Math.floor(Math.random() * activeCharacters.length);
+        const char = activeCharacters[rand];
+        char.classList.add('up');
+        
+        setTimeout(() => {
+          if (char.classList.contains('up')) {
+            char.classList.remove('up');
+          }
+        }, 500 + Math.random() * 1500);
+      }
     }
 
     function togglePause() {
@@ -318,19 +378,6 @@
       isPaused = !isPaused;
       pauseBtn.textContent = isPaused ? 'Resume' : 'Pause';
       if (isPaused) characters.forEach(c => c.classList.remove('up'));
-    }
-
-    function popRandomCharacter() {
-      if (!gameActive || isPaused) return;
-      characters.forEach(c => c.classList.remove('up'));
-      const rand = Math.floor(Math.random() * characters.length);
-      const char = characters[rand];
-      if (!char.classList.contains('whacked')) {
-        char.classList.add('up');
-        setTimeout(() => {
-          if (char.classList.contains('up')) char.classList.remove('up');
-        }, 500 + Math.random() * 1500);
-      }
     }
 
     function endGame() {
@@ -345,40 +392,31 @@
     }
 
     function restartGame() {
-      clearInterval(gameInterval);
-      clearInterval(moleInterval);
-      gameActive = false;
-      isPaused = false;
-      pauseBtn.textContent = "Pause";
-      score = 0;
-      timeLeft = 30;
-      scoreDisplay.textContent = score;
-      timeDisplay.textContent = timeLeft;
-      characters.forEach(c => c.classList.remove('up', 'whacked'));
-      gameOverScreen.style.display = 'none';
+      endGame();
       startGame();
     }
 
-    // Event listeners
-    startBtn.addEventListener('click', startGame);
-    pauseBtn.addEventListener('click', togglePause);
-    restartBtn.addEventListener('click', restartGame);
-    applyThemeBtn.addEventListener('click', applyTheme);
+    // Event Listeners
+    function setupEventListeners() {
+      startBtn.addEventListener('click', startGame);
+      pauseBtn.addEventListener('click', togglePause);
+      restartBtn.addEventListener('click', restartGame);
+      applyThemeBtn.addEventListener('click', applyTheme);
 
-    // Initialize game with default theme
-    applyThemeSettings(currentTheme);
-
-    // Add click handlers for whacking characters
-    characters.forEach(character => {
-      character.addEventListener('click', () => {
-        if (character.classList.contains('up') && gameActive && !isPaused) {
-          character.classList.remove('up');
-          character.classList.add('whacked');
-          score++;
-          scoreDisplay.textContent = score;
-        }
+      characters.forEach(character => {
+        character.addEventListener('click', () => {
+          if (character.classList.contains('up') && gameActive && !isPaused) {
+            character.classList.remove('up');
+            character.classList.add('whacked');
+            score++;
+            scoreDisplay.textContent = score;
+          }
+        });
       });
-    });
+    }
+
+    // Initialize
+    initGame();
   </script>
 </body>
 </html>
