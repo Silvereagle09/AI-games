@@ -131,16 +131,11 @@
 
     <script>
         async function generateGameAssets() {
-            const promptInput = document.getElementById('themePrompt').value;
-            const characterInput = document.getElementById('characterPrompt').value;
+            const promptInput = document.getElementById('themePrompt').value || "default futuristic world";
+            const characterInput = document.getElementById('characterPrompt').value || "speedy humanoid explorer";
             const aiDesc = document.getElementById('aiDescription');
             const aiChar = document.getElementById('aiCharacter');
             const audio = document.getElementById('bgMusic');
-
-            if (!promptInput || !characterInput) {
-                aiDesc.textContent = "Please enter both background and character prompts.";
-                return;
-            }
 
             aiDesc.textContent = "Generating background…";
             aiChar.textContent = "Generating character…";
@@ -170,19 +165,12 @@
                 const backgroundData = await backgroundResponse.json();
                 const characterData = await characterResponse.json();
 
-                console.log("AI Background:", backgroundData);
-                console.log("AI Character:", characterData);
-
                 aiDesc.textContent = `🧠 Background: ${backgroundData.result}`;
                 aiChar.textContent = `👤 Character: ${characterData.result}`;
 
-                // Apply background color or image
                 document.getElementById('gameCanvas').style.backgroundColor = backgroundData.color || '#87CEEB';
-
-                // Apply character color (in reality, this would affect draw logic)
                 window.playerColor = characterData.color || '#000';
 
-                // Play music if available
                 if (backgroundData.musicURL) {
                     audio.src = backgroundData.musicURL;
                     audio.style.display = 'block';
