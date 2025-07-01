@@ -116,392 +116,88 @@
         <button id="restartBtn">Restart Game</button>
     </div>
 
+    <div style="margin-top: 20px; text-align: center;">
+        <label for="themePrompt"><strong>Enter Background Theme:</strong></label>
+        <input id="themePrompt" type="text" placeholder="e.g. neon desert with robots" style="padding: 10px; width: 300px; font-size: 16px;">
+        <br><br>
+        <label for="characterPrompt"><strong>Enter Character Style:</strong></label>
+        <input id="characterPrompt" type="text" placeholder="e.g. cyber ninja in glowing armor" style="padding: 10px; width: 300px; font-size: 16px;">
+        <br><br>
+        <button onclick="generateGameAssets()">Generate Theme + Character</button>
+    </div>
+    <p id="aiDescription" style="margin-top: 10px; font-style: italic; color: #555;"></p>
+    <p id="aiCharacter" style="margin-top: 5px; font-style: italic; color: #666;"></p>
+    <audio id="bgMusic" loop autoplay style="display: none;"></audio>
+
     <script>
-        // Game elements
-        const canvas = document.getElementById('gameCanvas');
-        const ctx = canvas.getContext('2d');
-        const scoreDisplay = document.getElementById('scoreDisplay');
-        const startBtn = document.getElementById('startBtn');
-        const restartBtn = document.getElementById('restartBtn');
-        const pauseBtn = document.getElementById('pauseBtn');
-        const resumeBtn = document.getElementById('resumeBtn');
-        const startScreen = document.getElementById('startScreen');
-        const pauseScreen = document.getElementById('pauseScreen');
+        async function generateGameAssets() {
+            const promptInput = document.getElementById('themePrompt').value;
+            const characterInput = document.getElementById('characterPrompt').value;
+            const aiDesc = document.getElementById('aiDescription');
+            const aiChar = document.getElementById('aiCharacter');
+            const audio = document.getElementById('bgMusic');
 
-        // Game variables
-        let baseSpeed = 3;
-        let speedIncreaseRate = 0.0008;
-        let currentSpeed = baseSpeed;
-        let score = 0;
-        let gameRunning = false;
-        let gameStarted = false;
-        let gamePaused = false;
-        let lastTime = 0;
-        let animationFrameId;
-        let timestamp = 0;
-        let frameCount = 0;
-
-        // Player
-        const player = {
-            x: 50,
-            y: 300,
-            width: 30,
-            height: 60,
-            speedY: 0,
-            gravity: 0.5,
-            jumpForce: -12,
-            isJumping: false,
-            isSliding: false,
-            slideHeight: 30,
-            legPosition: 0,
-            armPosition: 0
-        };
-
-        // Ground
-        const ground = {
-            y: 350,
-            height: 50,
-            color: '#4CAF50'
-        };
-
-        // Obstacles
-        let obstacles = [];
-        let lastObstacleTime = 0;
-        const obstacleTypes = [
-            { width: 30, height: 60, y: ground.y - 60, color: '#F44336', type: 'block' },
-            { width: 70, height: 30, y: ground.y - 30, color: '#FF9800', type: 'low' },
-            { width: 30, height: 100, y: ground.y - 100, color: '#9C27B0', type: 'high' }
-        ];
-
-        // Game loop
-        function gameLoop(currentTimestamp) {
-            timestamp = currentTimestamp;
-            if (!gameRunning || gamePaused) return;
-            
-            const deltaTime = timestamp - lastTime;
-            lastTime = timestamp;
-            
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            
-            updateGame(deltaTime);
-            drawGame();
-            
-            animationFrameId = requestAnimationFrame(gameLoop);
-        }
-
-        function updateGame(deltaTime) {
-            // Increase speed gradually
-            currentSpeed = baseSpeed + (score * speedIncreaseRate);
-            
-            // Update score (distance)
-            score += currentSpeed * (deltaTime / 1000) * 10;
-            
-            // Player physics
-            player.speedY += player.gravity;
-            player.y += player.speedY;
-            
-            // Ground collision
-            if (player.y > ground.y - player.height) {
-                player.y = ground.y - player.height;
-                player.speedY = 0;
-                player.isJumping = false;
-                player.isSliding = false;
+            if (!promptInput || !characterInput) {
+                aiDesc.textContent = "Please enter both background and character prompts.";
+                return;
             }
-            
-            // Smoother running animation (slower leg movement)
-            if (!player.isJumping && !player.isSliding) {
-                frameCount++;
-                if (frameCount % 10 === 0) { // Changed from 5 to 10 for slower animation
-                    player.legPosition = player.legPosition === 0 ? 1 : 0;
-                    player.armPosition = player.armPosition === 0 ? 1 : 0;
-                }
-            }
-            
-            // Generate obstacles
-            if (timestamp - lastObstacleTime > 2000 / (currentSpeed / baseSpeed)) {
-                const obstacleType = Math.floor(Math.random() * obstacleTypes.length);
-                obstacles.push({
-                    ...obstacleTypes[obstacleType],
-                    x: canvas.width
-                });
-                lastObstacleTime = timestamp;
-            }
-            
-            // Update obstacles
-            for (let i = obstacles.length - 1; i >= 0; i--) {
-                obstacles[i].x -= currentSpeed;
-                
-                // Collision detection
-                if (checkCollision(player, obstacles[i])) {
-                    gameOver();
-                    return;
-                }
-                
-                // Remove off-screen obstacles
-                if (obstacles[i].x + obstacles[i].width < 0) {
-                    obstacles.splice(i, 1);
-                }
-            }
-            
-            // Update display
-            scoreDisplay.textContent = `Distance: ${Math.floor(score)} | Speed: ${currentSpeed.toFixed(1)}`;
-        }
 
-        function drawGame() {
-            // Draw sky background
-            ctx.fillStyle = '#87CEEB';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-            
-            // Draw distant mountains
-            ctx.fillStyle = '#5D4037';
-            ctx.beginPath();
-            ctx.moveTo(0, ground.y);
-            for (let i = 0; i < 5; i++) {
-                const x = (i * 200) - (score / 10) % 200;
-                ctx.lineTo(x, ground.y - 100);
-                ctx.lineTo(x + 100, ground.y);
-            }
-            ctx.lineTo(canvas.width, ground.y);
-            ctx.fill();
-            
-            // Draw ground
-            ctx.fillStyle = ground.color;
-            ctx.fillRect(0, ground.y, canvas.width, ground.height);
-            
-            // Draw player (stick figure with smoother animations)
-            ctx.strokeStyle = '#000';
-            ctx.lineWidth = 3;
-            
-            // Head
-            ctx.beginPath();
-            ctx.arc(player.x + 15, player.y + 10, 10, 0, Math.PI * 2);
-            ctx.stroke();
-            
-            // Body
-            ctx.beginPath();
-            ctx.moveTo(player.x + 15, player.y + 20);
-            ctx.lineTo(player.x + 15, player.y + 40);
-            ctx.stroke();
-            
-            // Legs and arms with smoother movement
-            if (player.isSliding) {
-                // Sliding pose
-                ctx.beginPath();
-                ctx.moveTo(player.x + 15, player.y + 40);
-                ctx.lineTo(player.x, player.y + 50);
-                ctx.moveTo(player.x + 15, player.y + 40);
-                ctx.lineTo(player.x + 30, player.y + 50);
-                ctx.stroke();
-                
-                // Arms (less flappy)
-                ctx.beginPath();
-                ctx.moveTo(player.x + 15, player.y + 25);
-                ctx.lineTo(player.x - 5, player.y + 30); // Reduced arm extension
-                ctx.moveTo(player.x + 15, player.y + 25);
-                ctx.lineTo(player.x + 35, player.y + 30); // Reduced arm extension
-                ctx.stroke();
-            } else if (player.isJumping) {
-                // Jumping pose
-                ctx.beginPath();
-                ctx.moveTo(player.x + 15, player.y + 40);
-                ctx.lineTo(player.x, player.y + 60);
-                ctx.moveTo(player.x + 15, player.y + 40);
-                ctx.lineTo(player.x + 30, player.y + 60);
-                ctx.stroke();
-                
-                // Arms up
-                ctx.beginPath();
-                ctx.moveTo(player.x + 15, player.y + 25);
-                ctx.lineTo(player.x, player.y + 15);
-                ctx.moveTo(player.x + 15, player.y + 25);
-                ctx.lineTo(player.x + 30, player.y + 15);
-                ctx.stroke();
-            } else {
-                // Running legs (smoother animation)
-                ctx.beginPath();
-                if (player.legPosition === 0) {
-                    ctx.moveTo(player.x + 15, player.y + 40);
-                    ctx.lineTo(player.x + 5, player.y + 60); // Less extreme leg positions
-                    ctx.moveTo(player.x + 15, player.y + 40);
-                    ctx.lineTo(player.x + 25, player.y + 55); // Less extreme leg positions
+            aiDesc.textContent = "Generating background…";
+            aiChar.textContent = "Generating character…";
+
+            try {
+                const [backgroundResponse, characterResponse] = await Promise.all([
+                    fetch("https://8a9658e6-b000-43e7-8ca3-b1257f9483de-00-44665w1144od.pike.replit.dev/api/theme", {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            prompt: promptInput,
+                            game: "speed-runner",
+                            type: "background"
+                        })
+                    }),
+                    fetch("https://8a9658e6-b000-43e7-8ca3-b1257f9483de-00-44665w1144od.pike.replit.dev/api/theme", {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            prompt: characterInput,
+                            game: "speed-runner",
+                            type: "character"
+                        })
+                    })
+                ]);
+
+                const backgroundData = await backgroundResponse.json();
+                const characterData = await characterResponse.json();
+
+                console.log("AI Background:", backgroundData);
+                console.log("AI Character:", characterData);
+
+                aiDesc.textContent = `🧠 Background: ${backgroundData.result}`;
+                aiChar.textContent = `👤 Character: ${characterData.result}`;
+
+                // Apply background color or image
+                document.getElementById('gameCanvas').style.backgroundColor = backgroundData.color || '#87CEEB';
+
+                // Apply character color (in reality, this would affect draw logic)
+                window.playerColor = characterData.color || '#000';
+
+                // Play music if available
+                if (backgroundData.musicURL) {
+                    audio.src = backgroundData.musicURL;
+                    audio.style.display = 'block';
+                    audio.play();
                 } else {
-                    ctx.moveTo(player.x + 15, player.y + 40);
-                    ctx.lineTo(player.x + 25, player.y + 60); // Less extreme leg positions
-                    ctx.moveTo(player.x + 15, player.y + 40);
-                    ctx.lineTo(player.x + 5, player.y + 55); // Less extreme leg positions
+                    audio.pause();
+                    audio.style.display = 'none';
                 }
-                ctx.stroke();
-                
-                // Running arms (smoother animation)
-                ctx.beginPath();
-                if (player.armPosition === 0) {
-                    ctx.moveTo(player.x + 15, player.y + 25);
-                    ctx.lineTo(player.x + 5, player.y + 35); // Less flappy arms
-                    ctx.moveTo(player.x + 15, player.y + 25);
-                    ctx.lineTo(player.x + 25, player.y + 15); // Less flappy arms
-                } else {
-                    ctx.moveTo(player.x + 15, player.y + 25);
-                    ctx.lineTo(player.x + 25, player.y + 35); // Less flappy arms
-                    ctx.moveTo(player.x + 15, player.y + 25);
-                    ctx.lineTo(player.x + 5, player.y + 15); // Less flappy arms
-                }
-                ctx.stroke();
-            }
-            
-            // Draw obstacles
-            for (const obstacle of obstacles) {
-                ctx.fillStyle = obstacle.color;
-                
-                if (obstacle.type === 'block') {
-                    ctx.fillRect(obstacle.x, obstacle.y, obstacle.width, obstacle.height);
-                } else if (obstacle.type === 'low') {
-                    ctx.beginPath();
-                    ctx.moveTo(obstacle.x, obstacle.y + obstacle.height);
-                    ctx.lineTo(obstacle.x, obstacle.y + 10);
-                    ctx.quadraticCurveTo(obstacle.x, obstacle.y, obstacle.x + 10, obstacle.y);
-                    ctx.lineTo(obstacle.x + obstacle.width - 10, obstacle.y);
-                    ctx.quadraticCurveTo(obstacle.x + obstacle.width, obstacle.y, 
-                                        obstacle.x + obstacle.width, obstacle.y + 10);
-                    ctx.lineTo(obstacle.x + obstacle.width, obstacle.y + obstacle.height);
-                    ctx.closePath();
-                    ctx.fill();
-                } else if (obstacle.type === 'high') {
-                    ctx.fillRect(obstacle.x, obstacle.y, obstacle.width, obstacle.height);
-                    ctx.fillStyle = '#FF5722';
-                    for (let i = 0; i < 3; i++) {
-                        ctx.beginPath();
-                        ctx.moveTo(obstacle.x + (i * 10), obstacle.y);
-                        ctx.lineTo(obstacle.x + (i * 10) + 5, obstacle.y - 10);
-                        ctx.lineTo(obstacle.x + (i * 10) + 10, obstacle.y);
-                        ctx.closePath();
-                        ctx.fill();
-                    }
-                }
-            }
-            
-            // Draw clouds
-            ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
-            for (let i = 0; i < 4; i++) {
-                const cloudX = (score / 3 + i * 250) % (canvas.width + 200) - 100;
-                ctx.beginPath();
-                ctx.arc(cloudX, 60, 20, 0, Math.PI * 2);
-                ctx.arc(cloudX + 20, 50, 25, 0, Math.PI * 2);
-                ctx.arc(cloudX + 45, 60, 20, 0, Math.PI * 2);
-                ctx.arc(cloudX + 25, 65, 15, 0, Math.PI * 2);
-                ctx.fill();
+
+            } catch (error) {
+                aiDesc.textContent = "⚠️ Background generation failed.";
+                aiChar.textContent = "⚠️ Character generation failed.";
+                console.error("AI Error:", error);
             }
         }
-
-        function checkCollision(player, obstacle) {
-            if (player.isSliding && obstacle.type === 'low') {
-                return false;
-            }
-            
-            return player.x < obstacle.x + obstacle.width &&
-                   player.x + 30 > obstacle.x &&
-                   player.y < obstacle.y + obstacle.height &&
-                   player.y + 60 > obstacle.y;
-        }
-
-        function gameOver() {
-            gameRunning = false;
-            cancelAnimationFrame(animationFrameId);
-            
-            ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-            
-            ctx.fillStyle = '#FFFFFF';
-            ctx.font = 'bold 48px Arial';
-            ctx.textAlign = 'center';
-            ctx.fillText('GAME OVER', canvas.width/2, canvas.height/2 - 30);
-            
-            ctx.font = '24px Arial';
-            ctx.fillText(`You ran ${Math.floor(score)} meters!`, canvas.width/2, canvas.height/2 + 20);
-            
-            ctx.font = '20px Arial';
-            ctx.fillText('Click "Restart Game" to try again', canvas.width/2, canvas.height/2 + 60);
-        }
-
-        function startGame() {
-            startScreen.style.display = 'none';
-            gameRunning = true;
-            gameStarted = true;
-            gamePaused = false;
-            resetGame();
-        }
-
-        function resetGame() {
-            if (animationFrameId) {
-                cancelAnimationFrame(animationFrameId);
-            }
-            
-            // Reset game state
-            currentSpeed = baseSpeed;
-            score = 0;
-            obstacles = [];
-            lastObstacleTime = 0;
-            frameCount = 0;
-            
-            // Reset player
-            player.x = 50;
-            player.y = ground.y - player.height;
-            player.speedY = 0;
-            player.isJumping = false;
-            player.isSliding = false;
-            player.legPosition = 0;
-            player.armPosition = 0;
-            
-            // Update display
-            scoreDisplay.textContent = `Distance: ${Math.floor(score)} | Speed: ${currentSpeed.toFixed(1)}`;
-            
-            // Clear canvas
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            
-            // Start game loop
-            if (gameStarted) {
-                gameRunning = true;
-                gamePaused = false;
-                lastTime = 0;
-                animationFrameId = requestAnimationFrame(gameLoop);
-            }
-        }
-
-        function togglePause() {
-            gamePaused = !gamePaused;
-            if (gamePaused) {
-                pauseScreen.style.display = 'flex';
-                cancelAnimationFrame(animationFrameId);
-            } else {
-                pauseScreen.style.display = 'none';
-                lastTime = performance.now(); // Reset lastTime to prevent jump after pause
-                animationFrameId = requestAnimationFrame(gameLoop);
-            }
-        }
-
-        // Event listeners
-        startBtn.addEventListener('click', startGame);
-        restartBtn.addEventListener('click', resetGame);
-        pauseBtn.addEventListener('click', togglePause);
-        resumeBtn.addEventListener('click', togglePause);
-        
-        document.addEventListener('keydown', (e) => {
-            if (!gameRunning || gamePaused) return;
-            
-            if ((e.key === 'ArrowUp' || e.key === ' ') && !player.isJumping) {
-                player.speedY = player.jumpForce;
-                player.isJumping = true;
-            } else if (e.key === 'ArrowDown' && !player.isSliding) {
-                player.isSliding = true;
-            } else if (e.key === 'p' || e.key === 'P') {
-                togglePause();
-            }
-        });
-        
-        document.addEventListener('keyup', (e) => {
-            if (e.key === 'ArrowDown') {
-                player.isSliding = false;
-            }
-        });
     </script>
 </body>
 </html>
