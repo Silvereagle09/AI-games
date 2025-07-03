@@ -34,13 +34,15 @@
       border-radius: 50%;
       position: relative;
       overflow: hidden;
+      cursor: pointer;
     }
     .character {
       width: 100%;
       height: 100%;
       position: absolute;
       bottom: -100%;
-      background-size: cover;
+      background-size: contain;
+      background-repeat: no-repeat;
       background-position: center;
       transition: bottom 0.3s;
     }
@@ -55,6 +57,13 @@
       margin: 5px;
       font-size: 16px;
       cursor: pointer;
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      border-radius: 5px;
+    }
+    button:hover {
+      background-color: #45a049;
     }
     #ai-controls {
       margin: 20px auto;
@@ -67,6 +76,10 @@
     #scoreboard {
       font-size: 20px;
       margin-top: 10px;
+      background-color: white;
+      padding: 10px;
+      border-radius: 5px;
+      display: inline-block;
     }
     #difficulty-controls {
       margin-top: 15px;
@@ -75,6 +88,10 @@
       font-weight: bold;
       color: #444;
       margin-top: 5px;
+    }
+    select {
+      padding: 5px;
+      font-size: 16px;
     }
   </style>
 </head>
@@ -114,30 +131,33 @@
   <audio id="hitSound" src="https://www.soundjay.com/button/sounds/button-29.mp3"></audio>
 
   <script>
+    // Game elements
     const board = document.getElementById('game-board');
     const scoreDisplay = document.getElementById('score');
     const timerDisplay = document.getElementById('timer');
     const highScoreDisplay = document.getElementById('highScore');
     const popSound = document.getElementById('popSound');
     const hitSound = document.getElementById('hitSound');
+    const promptInput = document.getElementById('prompt');
 
-    let interval, isPaused = false, holes = [], characters = [];
-    let holeColor = '#222', characterImage = '', backgroundColor = '#f0f0f0';
-    let score = 0, timeLeft = 30, gameTimer;
-    let difficultySpeed = 1200;
+    // Game variables
+    let interval, gameTimer;
+    let isPaused = false;
+    let holes = [];
+    let characters = [];
+    let holeColor = '#222';
+    let characterImage = 'https://cdn-icons-png.flaticon.com/512/616/616408.png';
+    let score = 0;
+    let timeLeft = 30;
+    let difficultySpeed = 1000; // Default medium speed
+    let gameActive = false;
 
-    function setDifficulty(level) {
-      switch(level) {
-        case 'easy': difficultySpeed = 1400; break;
-        case 'medium': difficultySpeed = 1000; break;
-        case 'hard': difficultySpeed = 600; break;
-      }
-    }
-
+    // Initialize the game board
     function createBoard() {
       board.innerHTML = '';
       holes = [];
       characters = [];
+      
       for (let i = 0; i < 6; i++) {
         const hole = document.createElement('div');
         hole.classList.add('hole');
@@ -146,12 +166,14 @@
         const character = document.createElement('div');
         character.classList.add('character');
         character.style.backgroundImage = `url(${characterImage})`;
-
-        character.addEventListener('click', () => {
-          if (character.classList.contains('up')) {
+        
+        // Add click event to the hole (not the character)
+        hole.addEventListener('click', () => {
+          if (character.classList.contains('up') && !isPaused && gameActive) {
             score++;
             scoreDisplay.textContent = score;
             character.classList.remove('up');
+            hitSound.currentTime = 0;
             hitSound.play();
           }
         });
@@ -164,81 +186,188 @@
       }
     }
 
+    // Make a character pop up
     function popCharacter() {
+      if (isPaused || !gameActive) return;
+      
+      // Hide all characters first
       characters.forEach(c => c.classList.remove('up'));
-      if (isPaused) return;
+      
+      // Show a random character
       const idx = Math.floor(Math.random() * characters.length);
       const char = characters[idx];
       char.classList.add('up');
+      
+      // Play sound
+      popSound.currentTime = 0;
       popSound.play();
-      setTimeout(() => char.classList.remove('up'), 800);
+      
+      // Hide after a short time
+      setTimeout(() => {
+        if (!isPaused && gameActive) {
+          char.classList.remove('up');
+        }
+      }, 800);
     }
 
+    // Start the game
     function startGame() {
+      if (gameActive) return;
+      
+      // Clear any existing intervals
       if (interval) clearInterval(interval);
       if (gameTimer) clearInterval(gameTimer);
+      
+      // Reset game state
       score = 0;
       timeLeft = 30;
       scoreDisplay.textContent = score;
       timerDisplay.textContent = timeLeft;
+      gameActive = true;
+      isPaused = false;
+      
+      // Start character popping
       interval = setInterval(popCharacter, difficultySpeed);
+      
+      // Start game timer
       gameTimer = setInterval(() => {
-        if (!isPaused && timeLeft > 0) {
+        if (!isPaused) {
           timeLeft--;
           timerDisplay.textContent = timeLeft;
-        } else if (timeLeft === 0) {
-          clearInterval(interval);
-          clearInterval(gameTimer);
-          const highScore = Math.max(score, parseInt(localStorage.getItem('whackHighScore') || 0));
-          localStorage.setItem('whackHighScore', highScore);
-          highScoreDisplay.textContent = highScore;
-          alert(`Game Over! Final Score: ${score}`);
+          
+          if (timeLeft <= 0) {
+            endGame();
+          }
         }
       }, 1000);
-      isPaused = false;
     }
 
+    // Pause/unpause the game
     function pauseGame() {
+      if (!gameActive) return;
+      
       isPaused = !isPaused;
+      document.querySelector('#controls button:nth-child(2)').textContent = 
+        isPaused ? 'Resume' : 'Pause';
     }
 
+    // End the game
+    function endGame() {
+      gameActive = false;
+      clearInterval(interval);
+      clearInterval(gameTimer);
+      
+      // Update high score
+      const currentHighScore = parseInt(localStorage.getItem('whackHighScore') || 0);
+      if (score > currentHighScore) {
+        localStorage.setItem('whackHighScore', score);
+        highScoreDisplay.textContent = score;
+      }
+      
+      alert(`Game Over! Final Score: ${score}`);
+    }
+
+    // Restart the game
     function restartGame() {
+      // Clear existing game state
       clearInterval(interval);
       clearInterval(gameTimer);
       isPaused = false;
-      createBoard();
+      gameActive = false;
+      
+      // Hide all characters
+      characters.forEach(c => c.classList.remove('up'));
+      
+      // Reset UI
+      document.querySelector('#controls button:nth-child(2)').textContent = 'Pause';
+      
+      // Start new game
       startGame();
     }
 
-    async function applyTheme() {
-      const prompt = document.getElementById('prompt').value;
-      if (!prompt) return alert('Please enter a theme.');
-      try {
-        const res = await fetch('https://8a9658e6-b000-43e7-8ca3-b1257f9483de-00-44665w1144od.pike.replit.dev/generate', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            prompt,
-            game: "whack-a-mole",
-            type: "background"
-          })
-        });
-        const data = await res.json();
-        backgroundColor = data.color || '#f0f0f0';
-        holeColor = data.holeColor || '#222';
-        characterImage = data.imageURL || 'https://cdn-icons-png.flaticon.com/512/616/616408.png';
-        document.body.style.backgroundColor = backgroundColor;
-        createBoard();
-      } catch (err) {
-        console.error('Theme fetch failed:', err);
-        alert('Failed to apply theme');
+    // Set game difficulty
+    function setDifficulty(level) {
+      switch(level) {
+        case 'easy': difficultySpeed = 1400; break;
+        case 'medium': difficultySpeed = 1000; break;
+        case 'hard': difficultySpeed = 600; break;
+      }
+      
+      // Update interval if game is running
+      if (gameActive) {
+        clearInterval(interval);
+        interval = setInterval(popCharacter, difficultySpeed);
       }
     }
 
-    // Load high score from local storage
-    highScoreDisplay.textContent = localStorage.getItem('whackHighScore') || 0;
+    // Apply theme from AI (simulated since API may not be available)
+    async function applyTheme() {
+      const prompt = promptInput.value;
+      if (!prompt) {
+        alert('Please enter a theme description.');
+        return;
+      }
+      
+      // Simulate API call with timeout
+      try {
+        // Show loading state
+        promptInput.disabled = true;
+        document.querySelector('#ai-controls button').disabled = true;
+        document.querySelector('#ai-controls button').textContent = 'Generating...';
+        
+        // Simulate API delay
+        await new Promise(resolve => setTimeout(resolve, 1500));
+        
+        // Generate random colors and image based on prompt
+        const colors = generateColorsFromPrompt(prompt);
+        backgroundColor = colors.backgroundColor;
+        holeColor = colors.holeColor;
+        characterImage = `https://placehold.co/150x150/${colors.textColor.substring(1)}/${colors.backgroundColor.substring(1)}?text=${encodeURIComponent(prompt.split(' ')[0])}`;
+        
+        // Apply theme
+        document.body.style.backgroundColor = backgroundColor;
+        createBoard();
+        
+      } catch (err) {
+        console.error('Theme generation failed:', err);
+        alert('Failed to generate theme. Using default.');
+      } finally {
+        // Reset UI
+        promptInput.disabled = false;
+        document.querySelector('#ai-controls button').disabled = false;
+        document.querySelector('#ai-controls button').textContent = 'Apply Theme';
+      }
+    }
 
-    createBoard();
+    // Helper function to generate colors from prompt
+    function generateColorsFromPrompt(prompt) {
+      // Simple hash function to generate consistent colors from prompt
+      let hash = 0;
+      for (let i = 0; i < prompt.length; i++) {
+        hash = prompt.charCodeAt(i) + ((hash << 5) - hash);
+      }
+      
+      const hue = Math.abs(hash % 360);
+      const complementaryHue = (hue + 180) % 360;
+      
+      return {
+        backgroundColor: `hsl(${hue}, 70%, 90%)`,
+        holeColor: `hsl(${complementaryHue}, 50%, 30%)`,
+        textColor: `hsl(${complementaryHue}, 80%, 20%)`
+      };
+    }
+
+    // Initialize the game
+    function init() {
+      // Load high score
+      highScoreDisplay.textContent = localStorage.getItem('whackHighScore') || 0;
+      
+      // Create initial board
+      createBoard();
+    }
+
+    // Start the game when page loads
+    window.onload = init;
   </script>
 </body>
 </html>
