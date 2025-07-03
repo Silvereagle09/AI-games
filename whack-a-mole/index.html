@@ -13,21 +13,14 @@
       padding: 20px;
     }
     #game-container {
-      position: relative; /* Make it relative for z-index */
-      z-index: 1; /* Ensure it's behind other elements */
+      position: relative;
+      z-index: 1;
       width: 600px;
       margin: 0 auto;
       background-color: #8B4513;
       border-radius: 10px;
       padding: 20px;
     }
-
-    #controls, #ai-controls {
-      position: relative;
-      z-index: 2; /* Ensure they're clickable */
-    }
-
-
     #game-board {
       display: flex;
       flex-wrap: wrap;
@@ -71,6 +64,18 @@
       width: 250px;
       margin: 5px;
     }
+    #scoreboard {
+      font-size: 20px;
+      margin-top: 10px;
+    }
+    #difficulty-controls {
+      margin-top: 15px;
+    }
+    #high-score {
+      font-weight: bold;
+      color: #444;
+      margin-top: 5px;
+    }
   </style>
 </head>
 <body>
@@ -81,20 +86,53 @@
     <button onclick="applyTheme()">Apply Theme</button>
   </div>
 
+  <div id="difficulty-controls">
+    <label>Difficulty:</label>
+    <select id="difficulty" onchange="setDifficulty(this.value)">
+      <option value="easy">Easy</option>
+      <option value="medium" selected>Medium</option>
+      <option value="hard">Hard</option>
+    </select>
+  </div>
+
   <div id="controls">
     <button onclick="startGame()">Start</button>
     <button onclick="pauseGame()">Pause</button>
     <button onclick="restartGame()">Restart</button>
   </div>
 
+  <div id="scoreboard">
+    Score: <span id="score">0</span> | Time Left: <span id="timer">30</span>s
+    <div id="high-score">High Score: <span id="highScore">0</span></div>
+  </div>
+
   <div id="game-container">
     <div id="game-board"></div>
   </div>
 
+  <audio id="popSound" src="https://www.soundjay.com/button/sounds/button-16.mp3"></audio>
+  <audio id="hitSound" src="https://www.soundjay.com/button/sounds/button-29.mp3"></audio>
+
   <script>
     const board = document.getElementById('game-board');
+    const scoreDisplay = document.getElementById('score');
+    const timerDisplay = document.getElementById('timer');
+    const highScoreDisplay = document.getElementById('highScore');
+    const popSound = document.getElementById('popSound');
+    const hitSound = document.getElementById('hitSound');
+
     let interval, isPaused = false, holes = [], characters = [];
     let holeColor = '#222', characterImage = '', backgroundColor = '#f0f0f0';
+    let score = 0, timeLeft = 30, gameTimer;
+    let difficultySpeed = 1200;
+
+    function setDifficulty(level) {
+      switch(level) {
+        case 'easy': difficultySpeed = 1400; break;
+        case 'medium': difficultySpeed = 1000; break;
+        case 'hard': difficultySpeed = 600; break;
+      }
+    }
 
     function createBoard() {
       board.innerHTML = '';
@@ -109,6 +147,15 @@
         character.classList.add('character');
         character.style.backgroundImage = `url(${characterImage})`;
 
+        character.addEventListener('click', () => {
+          if (character.classList.contains('up')) {
+            score++;
+            scoreDisplay.textContent = score;
+            character.classList.remove('up');
+            hitSound.play();
+          }
+        });
+
         hole.appendChild(character);
         board.appendChild(hole);
 
@@ -121,13 +168,33 @@
       characters.forEach(c => c.classList.remove('up'));
       if (isPaused) return;
       const idx = Math.floor(Math.random() * characters.length);
-      characters[idx].classList.add('up');
-      setTimeout(() => characters[idx].classList.remove('up'), 1000);
+      const char = characters[idx];
+      char.classList.add('up');
+      popSound.play();
+      setTimeout(() => char.classList.remove('up'), 800);
     }
 
     function startGame() {
       if (interval) clearInterval(interval);
-      interval = setInterval(popCharacter, 1200);
+      if (gameTimer) clearInterval(gameTimer);
+      score = 0;
+      timeLeft = 30;
+      scoreDisplay.textContent = score;
+      timerDisplay.textContent = timeLeft;
+      interval = setInterval(popCharacter, difficultySpeed);
+      gameTimer = setInterval(() => {
+        if (!isPaused && timeLeft > 0) {
+          timeLeft--;
+          timerDisplay.textContent = timeLeft;
+        } else if (timeLeft === 0) {
+          clearInterval(interval);
+          clearInterval(gameTimer);
+          const highScore = Math.max(score, parseInt(localStorage.getItem('whackHighScore') || 0));
+          localStorage.setItem('whackHighScore', highScore);
+          highScoreDisplay.textContent = highScore;
+          alert(`Game Over! Final Score: ${score}`);
+        }
+      }, 1000);
       isPaused = false;
     }
 
@@ -137,6 +204,7 @@
 
     function restartGame() {
       clearInterval(interval);
+      clearInterval(gameTimer);
       isPaused = false;
       createBoard();
       startGame();
@@ -166,6 +234,9 @@
         alert('Failed to apply theme');
       }
     }
+
+    // Load high score from local storage
+    highScoreDisplay.textContent = localStorage.getItem('whackHighScore') || 0;
 
     createBoard();
   </script>
