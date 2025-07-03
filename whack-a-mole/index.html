@@ -11,6 +11,7 @@
       background-color: #f0f0f0;
       margin: 0;
       padding: 20px;
+      transition: background-color 0.5s;
     }
     #game-container {
       position: relative;
@@ -35,6 +36,7 @@
       position: relative;
       overflow: hidden;
       cursor: pointer;
+      transition: background-color 0.3s;
     }
     .character {
       width: 100%;
@@ -65,6 +67,10 @@
     button:hover {
       background-color: #45a049;
     }
+    button:disabled {
+      background-color: #cccccc;
+      cursor: not-allowed;
+    }
     #ai-controls {
       margin: 20px auto;
     }
@@ -80,6 +86,7 @@
       padding: 10px;
       border-radius: 5px;
       display: inline-block;
+      min-width: 300px;
     }
     #difficulty-controls {
       margin-top: 15px;
@@ -92,6 +99,35 @@
     select {
       padding: 5px;
       font-size: 16px;
+    }
+    #game-over {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background-color: rgba(0, 0, 0, 0.8);
+      color: white;
+      padding: 20px;
+      border-radius: 10px;
+      z-index: 10;
+      display: none;
+    }
+    #game-over button {
+      margin-top: 15px;
+    }
+    #loading {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0,0,0,0.5);
+      z-index: 100;
+      justify-content: center;
+      align-items: center;
+      color: white;
+      font-size: 24px;
     }
   </style>
 </head>
@@ -124,7 +160,16 @@
   </div>
 
   <div id="game-container">
+    <div id="game-over">
+      <h2>Game Over!</h2>
+      <p>Your score: <span id="final-score">0</span></p>
+      <button onclick="restartGame()">Play Again</button>
+    </div>
     <div id="game-board"></div>
+  </div>
+
+  <div id="loading">
+    Generating theme...
   </div>
 
   <audio id="popSound" src="https://www.soundjay.com/button/sounds/button-16.mp3"></audio>
@@ -136,9 +181,12 @@
     const scoreDisplay = document.getElementById('score');
     const timerDisplay = document.getElementById('timer');
     const highScoreDisplay = document.getElementById('highScore');
+    const finalScoreDisplay = document.getElementById('final-score');
     const popSound = document.getElementById('popSound');
     const hitSound = document.getElementById('hitSound');
     const promptInput = document.getElementById('prompt');
+    const gameOverScreen = document.getElementById('game-over');
+    const loadingScreen = document.getElementById('loading');
 
     // Game variables
     let interval, gameTimer;
@@ -219,12 +267,14 @@
       if (gameTimer) clearInterval(gameTimer);
       
       // Reset game state
+      gameOverScreen.style.display = 'none';
       score = 0;
       timeLeft = 30;
       scoreDisplay.textContent = score;
       timerDisplay.textContent = timeLeft;
       gameActive = true;
       isPaused = false;
+      document.querySelector('#controls button:nth-child(2)').textContent = 'Pause';
       
       // Start character popping
       interval = setInterval(popCharacter, difficultySpeed);
@@ -264,11 +314,16 @@
         highScoreDisplay.textContent = score;
       }
       
-      alert(`Game Over! Final Score: ${score}`);
+      // Show game over screen
+      finalScoreDisplay.textContent = score;
+      gameOverScreen.style.display = 'block';
     }
 
     // Restart the game
     function restartGame() {
+      // Hide game over screen
+      gameOverScreen.style.display = 'none';
+      
       // Clear existing game state
       clearInterval(interval);
       clearInterval(gameTimer);
@@ -300,29 +355,30 @@
       }
     }
 
-    // Apply theme from AI (simulated since API may not be available)
+    // Apply theme from AI (simulated)
     async function applyTheme() {
-      const prompt = promptInput.value;
+      const prompt = promptInput.value.trim();
       if (!prompt) {
         alert('Please enter a theme description.');
         return;
       }
       
-      // Simulate API call with timeout
       try {
-        // Show loading state
-        promptInput.disabled = true;
+        // Show loading screen
+        loadingScreen.style.display = 'flex';
         document.querySelector('#ai-controls button').disabled = true;
-        document.querySelector('#ai-controls button').textContent = 'Generating...';
         
         // Simulate API delay
-        await new Promise(resolve => setTimeout(resolve, 1500));
+        await new Promise(resolve => setTimeout(resolve, 2000));
         
         // Generate random colors and image based on prompt
         const colors = generateColorsFromPrompt(prompt);
         backgroundColor = colors.backgroundColor;
         holeColor = colors.holeColor;
-        characterImage = `https://placehold.co/150x150/${colors.textColor.substring(1)}/${colors.backgroundColor.substring(1)}?text=${encodeURIComponent(prompt.split(' ')[0])}`;
+        
+        // Create a simple image based on the prompt
+        const firstWord = prompt.split(' ')[0].substring(0, 10);
+        characterImage = `https://dummyimage.com/150x150/${colors.holeColor.substring(1)}/${colors.backgroundColor.substring(1)}&text=${encodeURIComponent(firstWord)}`;
         
         // Apply theme
         document.body.style.backgroundColor = backgroundColor;
@@ -330,12 +386,11 @@
         
       } catch (err) {
         console.error('Theme generation failed:', err);
-        alert('Failed to generate theme. Using default.');
+        alert('Theme generation failed. Using default theme.');
       } finally {
-        // Reset UI
-        promptInput.disabled = false;
+        // Hide loading screen
+        loadingScreen.style.display = 'none';
         document.querySelector('#ai-controls button').disabled = false;
-        document.querySelector('#ai-controls button').textContent = 'Apply Theme';
       }
     }
 
