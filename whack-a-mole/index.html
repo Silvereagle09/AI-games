@@ -362,37 +362,45 @@
         alert('Please enter a theme description.');
         return;
       }
-      
+    
       try {
-        // Show loading screen
         loadingScreen.style.display = 'flex';
         document.querySelector('#ai-controls button').disabled = true;
-        
-        // Simulate API delay
-        await new Promise(resolve => setTimeout(resolve, 2000));
-        
-        // Generate random colors and image based on prompt
-        const colors = generateColorsFromPrompt(prompt);
-        backgroundColor = colors.backgroundColor;
-        holeColor = colors.holeColor;
-        
-        // Create a simple image based on the prompt
-        const firstWord = prompt.split(' ')[0].substring(0, 10);
-        characterImage = `https://dummyimage.com/150x150/${colors.holeColor.substring(1)}/${colors.backgroundColor.substring(1)}&text=${encodeURIComponent(firstWord)}`;
-        
-        // Apply theme
-        document.body.style.backgroundColor = backgroundColor;
-        createBoard();
-        
+    
+        const response = await fetch('http://localhost:3000/generate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            prompt: prompt,
+            game: 'whack-a-mole',
+            type: 'character' // or 'background', you can loop twice if needed
+          })
+        });
+    
+        const data = await response.json();
+    
+        // Apply AI theme
+        if (data.imageURL) {
+          characterImage = data.imageURL;
+        }
+        if (data.color) {
+          document.body.style.backgroundColor = data.color;
+        }
+        if (data.holeColor) {
+          holeColor = data.holeColor;
+        }
+    
+        createBoard(); // Refresh with new visuals
+    
       } catch (err) {
         console.error('Theme generation failed:', err);
-        alert('Theme generation failed. Using default theme.');
+        alert('Theme generation failed. Try again.');
       } finally {
-        // Hide loading screen
         loadingScreen.style.display = 'none';
         document.querySelector('#ai-controls button').disabled = false;
       }
     }
+
 
     // Helper function to generate colors from prompt
     function generateColorsFromPrompt(prompt) {
