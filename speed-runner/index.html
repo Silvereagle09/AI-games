@@ -142,7 +142,7 @@
 
             try {
                 const [backgroundResponse, characterResponse] = await Promise.all([
-                    fetch("https://8a9658e6-b000-43e7-8ca3-b1257f9483de-00-44665w1144od.pike.replit.dev/", {
+                    fetch("https://8a9658e6-b000-43e7-8ca3-b1257f9483de-00-44665w1144od.pike.replit.dev/generate", {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
@@ -151,7 +151,7 @@
                             type: "background"
                         })
                     }),
-                    fetch("https://8a9658e6-b000-43e7-8ca3-b1257f9483de-00-44665w1144od.pike.replit.dev/", {
+                    fetch("https://8a9658e6-b000-43e7-8ca3-b1257f9483de-00-44665w1144od.pike.replit.dev/generate", {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
@@ -165,8 +165,8 @@
                 const backgroundData = await backgroundResponse.json();
                 const characterData = await characterResponse.json();
 
-                aiDesc.textContent = `🧠 Background: ${backgroundData.result}`;
-                aiChar.textContent = `👤 Character: ${characterData.result}`;
+                aiDesc.textContent = `🧠 Background: ${backgroundData.description}`;
+                aiChar.textContent = `👤 Character: ${characterData.description}`;
 
                 document.getElementById('gameCanvas').style.backgroundColor = backgroundData.color || '#87CEEB';
                 window.playerColor = characterData.color || '#000';
