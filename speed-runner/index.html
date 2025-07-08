@@ -1,191 +1,178 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Endless Speed Runner</title>
-    <style>
-        body {
-            font-family: 'Arial', sans-serif;
-            margin: 0;
-            padding: 20px;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            flex-direction: column;
-            background-color: #f0f0f0;
-        }
-        #gameContainer {
-            position: relative;
-            margin-top: 20px;
-        }
-        #gameCanvas {
-            border: 3px solid #333;
-            background-color: #87CEEB;
-            display: block;
-            box-shadow: 0 0 20px rgba(0,0,0,0.2);
-        }
-        #scoreDisplay {
-            font-size: 24px;
-            margin-bottom: 10px;
-            color: #333;
-            font-weight: bold;
-        }
-        #controls {
-            margin-top: 20px;
-            text-align: center;
-        }
-        button {
-            padding: 12px 25px;
-            font-size: 18px;
-            background-color: #4CAF50;
-            color: white;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            margin: 0 10px;
-            transition: all 0.3s;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-        }
-        button:hover {
-            background-color: #45a049;
-            transform: translateY(-2px);
-            box-shadow: 0 6px 8px rgba(0,0,0,0.15);
-        }
-        button:active {
-            transform: translateY(1px);
-        }
-        #startScreen {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0,0,0,0.7);
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            color: white;
-        }
-        #startScreen h1 {
-            font-size: 48px;
-            margin-bottom: 20px;
-            text-shadow: 2px 2px 4px #000;
-        }
-        #startScreen p {
-            font-size: 20px;
-            margin-bottom: 30px;
-            text-align: center;
-            max-width: 80%;
-        }
-        #pauseScreen {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0,0,0,0.5);
-            display: none;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            color: white;
-        }
-        #pauseScreen h2 {
-            font-size: 36px;
-            margin-bottom: 20px;
-        }
-    </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>AI Speed Runner</title>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+    body {
+      margin: 0;
+      font-family: 'Arial', sans-serif;
+      background-color: #222;
+      color: white;
+      overflow: hidden;
+    }
+
+    #gameContainer {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+      background-image: url('https://images.unsplash.com/photo-1549924231-f129b911e442?auto=format&fit=crop&w=1200&q=60'); /* Placeholder background */
+      background-size: cover;
+      background-position: center;
+    }
+
+    #player {
+      position: absolute;
+      bottom: 20px;
+      left: 50px;
+      width: 50px;
+      height: 50px;
+      background-color: red;
+      border-radius: 10px;
+    }
+
+    .obstacle {
+      position: absolute;
+      bottom: 20px;
+      width: 40px;
+      height: 40px;
+      background-color: yellow;
+      border-radius: 5px;
+    }
+
+    #score {
+      position: absolute;
+      top: 10px;
+      left: 20px;
+      font-size: 24px;
+      font-weight: bold;
+    }
+
+    #gameOver {
+      position: absolute;
+      top: 40%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 40px;
+      background: rgba(0, 0, 0, 0.7);
+      padding: 20px 40px;
+      display: none;
+      border: 2px solid white;
+      border-radius: 10px;
+    }
+
+    #restartBtn {
+      margin-top: 20px;
+      padding: 10px 20px;
+      font-size: 18px;
+      cursor: pointer;
+    }
+  </style>
 </head>
 <body>
-    <div id="scoreDisplay">Distance: 0 | Speed: 3.0</div>
-    <div id="gameContainer">
-        <canvas id="gameCanvas" width="800" height="400"></canvas>
-        <div id="startScreen">
-            <h1>ENDLESS RUNNER</h1>
-            <p>Run as far as you can! The game gets faster over time.</p>
-            <p>Controls: SPACE/UP ARROW to Jump | DOWN ARROW to Slide | P to Pause</p>
-            <button id="startBtn">START GAME</button>
-        </div>
-        <div id="pauseScreen">
-            <h2>PAUSED</h2>
-            <button id="resumeBtn">Resume</button>
-        </div>
+
+  <div id="gameContainer">
+    <div id="score">Score: 0</div>
+    <div id="player"></div>
+    <div id="gameOver">
+      Game Over<br>
+      <button id="restartBtn">Restart</button>
     </div>
-    <div id="controls">
-        <button id="pauseBtn">Pause Game</button>
-        <button id="restartBtn">Restart Game</button>
-    </div>
+  </div>
 
-    <div style="margin-top: 20px; text-align: center;">
-        <label for="themePrompt"><strong>Enter Background Theme:</strong></label>
-        <input id="themePrompt" type="text" placeholder="e.g. neon desert with robots" style="padding: 10px; width: 300px; font-size: 16px;">
-        <br><br>
-        <label for="characterPrompt"><strong>Enter Character Style:</strong></label>
-        <input id="characterPrompt" type="text" placeholder="e.g. cyber ninja in glowing armor" style="padding: 10px; width: 300px; font-size: 16px;">
-        <br><br>
-        <button onclick="generateGameAssets()">Generate Theme + Character</button>
-    </div>
-    <p id="aiDescription" style="margin-top: 10px; font-style: italic; color: #555;"></p>
-    <p id="aiCharacter" style="margin-top: 5px; font-style: italic; color: #666;"></p>
-    <audio id="bgMusic" loop autoplay style="display: none;"></audio>
+  <script>
+    const gameContainer = document.getElementById("gameContainer");
+    const player = document.getElementById("player");
+    const scoreDisplay = document.getElementById("score");
+    const gameOverScreen = document.getElementById("gameOver");
+    const restartBtn = document.getElementById("restartBtn");
 
-    <script>
-        async function generateGameAssets() {
-            const promptInput = document.getElementById('themePrompt').value || "default futuristic world";
-            const characterInput = document.getElementById('characterPrompt').value || "speedy humanoid explorer";
-            const aiDesc = document.getElementById('aiDescription');
-            const aiChar = document.getElementById('aiCharacter');
-            const audio = document.getElementById('bgMusic');
+    let isJumping = false;
+    let score = 0;
+    let gameSpeed = 5;
+    let gameRunning = true;
 
-            aiDesc.textContent = "Generating background…";
-            aiChar.textContent = "Generating character…";
+    // Jump logic
+    window.addEventListener("keydown", (e) => {
+      if (e.code === "Space" && !isJumping && gameRunning) {
+        isJumping = true;
+        player.style.transition = "bottom 0.3s";
+        player.style.bottom = "120px";
+        setTimeout(() => {
+          player.style.bottom = "20px";
+          setTimeout(() => isJumping = false, 300);
+        }, 300);
+      }
+    });
 
-            try {
-                const [backgroundResponse, characterResponse] = await Promise.all([
-                    fetch("https://8a9658e6-b000-43e7-8ca3-b1257f9483de-00-44665w1144od.pike.replit.dev/generate", {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            prompt: promptInput,
-                            game: "speed-runner",
-                            type: "background"
-                        })
-                    }),
-                    fetch("https://8a9658e6-b000-43e7-8ca3-b1257f9483de-00-44665w1144od.pike.replit.dev/generate", {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            prompt: characterInput,
-                            game: "speed-runner",
-                            type: "character"
-                        })
-                    })
-                ]);
+    // Obstacle generation
+    function spawnObstacle() {
+      const obstacle = document.createElement("div");
+      obstacle.classList.add("obstacle");
+      obstacle.style.right = "-60px";
+      gameContainer.appendChild(obstacle);
 
-                const backgroundData = await backgroundResponse.json();
-                const characterData = await characterResponse.json();
-
-                aiDesc.textContent = `🧠 Background: ${backgroundData.description}`;
-                aiChar.textContent = `👤 Character: ${characterData.description}`;
-
-                document.getElementById('gameCanvas').style.backgroundColor = backgroundData.color || '#87CEEB';
-                window.playerColor = characterData.color || '#000';
-
-                if (backgroundData.musicURL) {
-                    audio.src = backgroundData.musicURL;
-                    audio.style.display = 'block';
-                    audio.play();
-                } else {
-                    audio.pause();
-                    audio.style.display = 'none';
-                }
-
-            } catch (error) {
-                aiDesc.textContent = "⚠️ Background generation failed.";
-                aiChar.textContent = "⚠️ Character generation failed.";
-                console.error("AI Error:", error);
-            }
+      let obstacleX = window.innerWidth;
+      const move = setInterval(() => {
+        if (!gameRunning) {
+          clearInterval(move);
+          obstacle.remove();
+          return;
         }
-    </script>
+
+        obstacleX -= gameSpeed;
+        obstacle.style.right = `${-obstacleX}px`;
+
+        // Collision detection
+        const playerRect = player.getBoundingClientRect();
+        const obstacleRect = obstacle.getBoundingClientRect();
+        if (
+          playerRect.left < obstacleRect.right &&
+          playerRect.right > obstacleRect.left &&
+          playerRect.bottom > obstacleRect.top
+        ) {
+          gameOver();
+        }
+
+        // Score update
+        if (obstacleX < 0) {
+          clearInterval(move);
+          obstacle.remove();
+          score++;
+          scoreDisplay.textContent = `Score: ${score}`;
+          if (score % 5 === 0) gameSpeed += 1;
+        }
+      }, 20);
+    }
+
+    function startSpawning() {
+      const spawner = setInterval(() => {
+        if (!gameRunning) clearInterval(spawner);
+        spawnObstacle();
+      }, 1500);
+    }
+
+    function gameOver() {
+      gameRunning = false;
+      gameOverScreen.style.display = "block";
+    }
+
+    restartBtn.onclick = () => {
+      score = 0;
+      gameSpeed = 5;
+      gameRunning = true;
+      gameOverScreen.style.display = "none";
+      scoreDisplay.textContent = `Score: ${score}`;
+      document.querySelectorAll('.obstacle').forEach(o => o.remove());
+      startSpawning();
+    };
+
+    startSpawning();
+  </script>
+
 </body>
 </html>
