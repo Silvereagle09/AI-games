@@ -20,7 +20,6 @@
       position: relative;
       width: 100vw;
       height: 100vh;
-      background-image: url('https://images.unsplash.com/photo-1549924231-f129b911e442?auto=format&fit=crop&w=1200&q=60'); /* Placeholder background */
       background-size: cover;
       background-position: center;
     }
@@ -31,8 +30,11 @@
       left: 50px;
       width: 50px;
       height: 50px;
-      background-color: red;
+      background-color: red; /* fallback */
       border-radius: 10px;
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
     }
 
     .obstacle {
@@ -40,8 +42,11 @@
       bottom: 20px;
       width: 40px;
       height: 40px;
-      background-color: yellow;
+      background-color: yellow; /* fallback */
       border-radius: 5px;
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
     }
 
     #score {
@@ -71,9 +76,35 @@
       font-size: 18px;
       cursor: pointer;
     }
+
+    #promptScreen {
+      position: absolute;
+      top: 0; left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: black;
+      color: white;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      z-index: 10;
+    }
+
+    #promptScreen input, #promptScreen button {
+      padding: 10px;
+      margin-top: 10px;
+      font-size: 16px;
+    }
   </style>
 </head>
 <body>
+
+  <div id="promptScreen">
+    <h2>Enter Theme for Your Speed Runner</h2>
+    <input id="themeInput" type="text" placeholder="e.g. Futuristic Desert" />
+    <button onclick="submitTheme()">Generate</button>
+  </div>
 
   <div id="gameContainer">
     <div id="score">Score: 0</div>
@@ -95,25 +126,61 @@
     let score = 0;
     let gameSpeed = 5;
     let gameRunning = true;
+    let generatedObstacleUrl = null;
 
-    // Jump logic
-    window.addEventListener("keydown", (e) => {
-      if (e.code === "Space" && !isJumping && gameRunning) {
-        isJumping = true;
-        player.style.transition = "bottom 0.3s";
-        player.style.bottom = "120px";
-        setTimeout(() => {
-          player.style.bottom = "20px";
-          setTimeout(() => isJumping = false, 300);
-        }, 300);
+    async function submitTheme() {
+      const theme = document.getElementById("themeInput").value;
+      if (!theme) return alert("Please enter a theme!");
+
+      const response = await fetch('https://8a9658e6-b000-43e7-8ca3-b1257f9483de-00-44665w1144od.pike.replit.dev/generate-theme', {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ theme })
+      });
+
+      const data = await response.json();
+      console.log("AI Generated:", data);
+
+      // Set background
+      if (data.background_url) {
+        gameContainer.style.backgroundImage = `url('${data.background_url}')`;
       }
-    });
 
-    // Obstacle generation
+      // Set character image
+      if (data.character_url) {
+        player.style.backgroundImage = `url('${data.character_url}')`;
+        player.style.backgroundColor = "transparent";
+      }
+
+      // Store obstacle image for later
+      if (data.obstacle_url) {
+        generatedObstacleUrl = data.obstacle_url;
+      }
+
+      // Hide theme prompt and start game
+      document.getElementById("promptScreen").style.display = "none";
+      startSpawning();
+    }
+
+    function startSpawning() {
+      const spawner = setInterval(() => {
+        if (!gameRunning) clearInterval(spawner);
+        spawnObstacle();
+      }, 1500);
+    }
+
     function spawnObstacle() {
       const obstacle = document.createElement("div");
       obstacle.classList.add("obstacle");
       obstacle.style.right = "-60px";
+
+      if (generatedObstacleUrl) {
+        obstacle.style.backgroundImage = `url('${generatedObstacleUrl}')`;
+        obstacle.style.backgroundColor = "transparent";
+      }
+
       gameContainer.appendChild(obstacle);
 
       let obstacleX = window.innerWidth;
@@ -138,7 +205,6 @@
           gameOver();
         }
 
-        // Score update
         if (obstacleX < 0) {
           clearInterval(move);
           obstacle.remove();
@@ -149,12 +215,17 @@
       }, 20);
     }
 
-    function startSpawning() {
-      const spawner = setInterval(() => {
-        if (!gameRunning) clearInterval(spawner);
-        spawnObstacle();
-      }, 1500);
-    }
+    window.addEventListener("keydown", (e) => {
+      if (e.code === "Space" && !isJumping && gameRunning) {
+        isJumping = true;
+        player.style.transition = "bottom 0.3s";
+        player.style.bottom = "120px";
+        setTimeout(() => {
+          player.style.bottom = "20px";
+          setTimeout(() => isJumping = false, 300);
+        }, 300);
+      }
+    });
 
     function gameOver() {
       gameRunning = false;
@@ -170,8 +241,6 @@
       document.querySelectorAll('.obstacle').forEach(o => o.remove());
       startSpawning();
     };
-
-    startSpawning();
   </script>
 
 </body>
