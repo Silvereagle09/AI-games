@@ -367,7 +367,7 @@
         loadingScreen.style.display = 'flex';
         document.querySelector('#ai-controls button').disabled = true;
     
-        const response = await fetch('http://localhost:3000/generate', {
+        const response = await fetch('https://8a9658e6-b000-43e7-8ca3-b1257f9483de-00-44665w1144od.pike.replit.dev/generate-theme', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
